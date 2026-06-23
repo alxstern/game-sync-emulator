@@ -91,7 +91,11 @@ extension Player {
         encounters      = try c.decodeIfPresent([DreamEncounter].self, forKey: .encounters)  ?? []
         items           = try c.decodeIfPresent([DreamItem].self,      forKey: .items)       ?? []
         avenueVisitors  = try c.decodeIfPresent([AvenueVisitor].self,  forKey: .avenueVisitors) ?? []
-        decor           = try c.decodeIfPresent([DreamDecor].self,     forKey: .decor) ?? DreamDecor.defaultDecor
+        if let savedDecor = try c.decodeIfPresent([DreamDecor].self, forKey: .decor) {
+            decor = savedDecor
+        } else {
+            decor = DreamDecor.defaultDecor
+        }
         dataDirectory   = nil
     }
 }

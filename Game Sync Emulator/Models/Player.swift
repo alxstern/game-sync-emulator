@@ -46,11 +46,32 @@ struct Player: Codable {
     mutating func setAvenueVisitors(_ new: [AvenueVisitor]) { if new.count <= 12 { avenueVisitors = new } }
     mutating func setDecor(_ new: [DreamDecor])             { if new.count <= 5  { decor         = new } }
 
-    var dataFile: URL?   { dataDirectory?.appendingPathComponent("data.json") }
-    var saveFile: URL?   { dataDirectory?.appendingPathComponent("save.bin") }
-    var cgearFile: URL?  { dataDirectory?.appendingPathComponent("cgear.bin") }
-    var dexFile: URL?    { dataDirectory?.appendingPathComponent("zukan.bin") }
-    var musicalFile: URL? { dataDirectory?.appendingPathComponent("musical.bin") }
+    nonisolated var dataFile: URL?    { dataDirectory?.appendingPathComponent("data.json") }
+    nonisolated var saveFile: URL?    { dataDirectory?.appendingPathComponent("save.bin") }
+    nonisolated var cgearFile: URL?   { dataDirectory?.appendingPathComponent("cgear.bin") }
+    nonisolated var dexFile: URL?     { dataDirectory?.appendingPathComponent("zukan.bin") }
+    nonisolated var musicalFile: URL? { dataDirectory?.appendingPathComponent("musical.bin") }
+}
+
+extension Player {
+    nonisolated init(gameSyncId: String, gameVersion: GameVersion, dataDirectory: URL? = nil) {
+        self.gameSyncId       = gameSyncId
+        self.gameVersion      = gameVersion
+        self.status           = .awake
+        self.dreamerInfo      = nil
+        self.cgearSkin        = nil
+        self.dexSkin          = nil
+        self.musical          = nil
+        self.customCGearSkin  = nil
+        self.customDexSkin    = nil
+        self.customMusical    = nil
+        self.levelsGained     = 0
+        self.encounters       = []
+        self.items            = []
+        self.avenueVisitors   = []
+        self.decor            = DreamDecor.defaultDecor
+        self.dataDirectory    = dataDirectory
+    }
 }
 
 // Collections default to empty (or default decor) when absent in older save files.

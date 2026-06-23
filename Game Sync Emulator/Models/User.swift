@@ -15,14 +15,14 @@ struct User: Codable {
         case id, password, profiles
     }
 
-    init(id: String, password: String) {
+    nonisolated init(id: String, password: String) {
         self.id = id
         self.password = password
         self.profiles = [:]
     }
 
     // "123456789" → "1234-5678-9000"
-    var formattedId: String {
+    nonisolated var formattedId: String {
         let padded = id + "000"
         return stride(from: 0, to: padded.count, by: 4).map { i -> String in
             let start = padded.index(padded.startIndex, offsetBy: i)
@@ -31,13 +31,13 @@ struct User: Codable {
         }.joined(separator: "-")
     }
 
-    var redactedId: String { String(id.prefix(4)) + "-XXXX-XXXX-XXXX" }
+    nonisolated var redactedId: String { String(id.prefix(4)) + "-XXXX-XXXX-XXXX" }
 
-    func profile(for branchCode: String) -> GameProfile? { profiles[branchCode] }
-    func dlcOverride(for type: String) -> Dlc?           { dlcOverrides[type] }
-    func hasDlcOverride(for type: String) -> Bool         { dlcOverrides[type] != nil }
+    nonisolated func profile(for branchCode: String) -> GameProfile? { profiles[branchCode] }
+    nonisolated func dlcOverride(for type: String) -> Dlc?           { dlcOverrides[type] }
+    nonisolated func hasDlcOverride(for type: String) -> Bool         { dlcOverrides[type] != nil }
 
-    mutating func setDlcOverride(_ dlc: Dlc?, for type: String) {
+    nonisolated mutating func setDlcOverride(_ dlc: Dlc?, for type: String) {
         dlcOverrides[type] = dlc
     }
 }

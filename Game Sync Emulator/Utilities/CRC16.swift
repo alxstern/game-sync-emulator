@@ -3,7 +3,7 @@
 
 enum CRC16 {
 
-    static func calc(_ input: [UInt8], offset: Int = 0, length: Int? = nil) -> Int {
+    nonisolated static func calc(_ input: [UInt8], offset: Int = 0, length: Int? = nil) -> Int {
         let count = length ?? (input.count - offset)
         var crc = 0xFFFF
 
@@ -22,7 +22,7 @@ enum CRC16 {
     }
 
     // Computes the checksum of the four little-endian bytes of a 32-bit integer.
-    static func calc(_ input: Int32) -> Int {
+    nonisolated static func calc(_ input: Int32) -> Int {
         calc([
             UInt8(truncatingIfNeeded: input),
             UInt8(truncatingIfNeeded: input >> 8),

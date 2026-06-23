@@ -7,7 +7,7 @@ struct ServiceSession {
     let challengeHash: String
     let expiry: Date
 
-    init(user: User, service: String, branchCode: String, challengeHash: String, duration: TimeInterval) {
+    nonisolated init(user: User, service: String, branchCode: String, challengeHash: String, duration: TimeInterval) {
         self.user = user
         self.service = service
         self.branchCode = branchCode
@@ -15,5 +15,5 @@ struct ServiceSession {
         self.expiry = Date.now.addingTimeInterval(duration)
     }
 
-    var isExpired: Bool { Date.now > expiry }
+    nonisolated var isExpired: Bool { Date.now > expiry }
 }

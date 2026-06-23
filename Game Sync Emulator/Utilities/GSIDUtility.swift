@@ -8,9 +8,9 @@
 
 enum GSIDUtility {
 
-    static let chartable = Array("ABCDEFGHJKLMNPQRSTUVWXYZ23456789")
+    nonisolated static let chartable = Array("ABCDEFGHJKLMNPQRSTUVWXYZ23456789")
 
-    static func stringify(_ pid: Int32) -> String {
+    nonisolated static func stringify(_ pid: Int32) -> String {
         let checksum = Int64(CRC16.calc(pid))
         let ugsid = Int64(pid) | (checksum << 32)
         var chars = [Character](repeating: " ", count: 10)
@@ -23,7 +23,7 @@ enum GSIDUtility {
         return String(chars)
     }
 
-    static func isValid(_ gsid: String) -> Bool {
+    nonisolated static func isValid(_ gsid: String) -> Bool {
         guard gsid.count == 10 else { return false }
 
         var ugsid: Int64 = 0

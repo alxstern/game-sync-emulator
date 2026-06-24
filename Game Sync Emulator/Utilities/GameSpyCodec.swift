@@ -10,11 +10,11 @@ enum GameSpyCodec {
         case unclosedFieldName
     }
 
-    static func encode(_ pairs: [(String, String)]) -> String {
+    nonisolated static func encode(_ pairs: [(String, String)]) -> String {
         pairs.map { "\\\($0.0)\\\($0.1)" }.joined()
     }
 
-    static func parse(_ string: String) throws -> [String: String] {
+    nonisolated static func parse(_ string: String) throws -> [String: String] {
         guard string.first == "\\" else {
             throw ParseError.doesNotStartWithBackslash
         }

@@ -1,6 +1,6 @@
 import Foundation
 
-final class DlcList {
+final class DlcList: @unchecked Sendable {
 
     private let entries: [Dlc]
 

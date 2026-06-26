@@ -6,6 +6,12 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		FAC689892FEE0FEB0092788C /* NIO in Frameworks */ = {isa = PBXBuildFile; productRef = FAC689882FEE0FEB0092788C /* NIO */; };
+		FAC6898B2FEE0FEB0092788C /* NIOHTTP1 in Frameworks */ = {isa = PBXBuildFile; productRef = FAC6898A2FEE0FEB0092788C /* NIOHTTP1 */; };
+		FAC6898E2FEE101E0092788C /* NIOSSL in Frameworks */ = {isa = PBXBuildFile; productRef = FAC6898D2FEE101E0092788C /* NIOSSL */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		FAC6876F2FE5DA3B0092788C /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -39,6 +45,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FAC689892FEE0FEB0092788C /* NIO in Frameworks */,
+				FAC6898B2FEE0FEB0092788C /* NIOHTTP1 in Frameworks */,
+				FAC6898E2FEE101E0092788C /* NIOSSL in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -90,6 +99,9 @@
 			);
 			name = "Game Sync Emulator";
 			packageProductDependencies = (
+				FAC689882FEE0FEB0092788C /* NIO */,
+				FAC6898A2FEE0FEB0092788C /* NIOHTTP1 */,
+				FAC6898D2FEE101E0092788C /* NIOSSL */,
 			);
 			productName = "Game Sync Emulator";
 			productReference = FAC6874E2FE5CDE00092788C /* Game Sync Emulator.app */;
@@ -146,6 +158,10 @@
 			);
 			mainGroup = FAC687452FE5CDE00092788C;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				FAC689872FEE0FEB0092788C /* XCRemoteSwiftPackageReference "swift-nio" */,
+				FAC6898C2FEE101E0092788C /* XCRemoteSwiftPackageReference "swift-nio-ssl" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = FAC6874F2FE5CDE00092788C /* Products */;
 			projectDirPath = "";
@@ -467,6 +483,43 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		FAC689872FEE0FEB0092788C /* XCRemoteSwiftPackageReference "swift-nio" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-nio.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.101.2;
+			};
+		};
+		FAC6898C2FEE101E0092788C /* XCRemoteSwiftPackageReference "swift-nio-ssl" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-nio-ssl";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.37.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		FAC689882FEE0FEB0092788C /* NIO */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FAC689872FEE0FEB0092788C /* XCRemoteSwiftPackageReference "swift-nio" */;
+			productName = NIO;
+		};
+		FAC6898A2FEE0FEB0092788C /* NIOHTTP1 */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FAC689872FEE0FEB0092788C /* XCRemoteSwiftPackageReference "swift-nio" */;
+			productName = NIOHTTP1;
+		};
+		FAC6898D2FEE101E0092788C /* NIOSSL */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FAC6898C2FEE101E0092788C /* XCRemoteSwiftPackageReference "swift-nio-ssl" */;
+			productName = NIOSSL;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = FAC687462FE5CDE00092788C /* Project object */;
 }

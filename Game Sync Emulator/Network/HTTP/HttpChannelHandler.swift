@@ -67,6 +67,8 @@ struct HttpRouter: @unchecked Sendable {
                 headers: [("X-Organization", "Nintendo")],
                 body: Data("Test".utf8)
             )
+        case "/ac":
+            return await NasHandler(userManager: userManager, configuration: configuration).handle(request)
         default:
             print("HTTP: unhandled \(request.method) \(request.path)")
             return HttpResponse(status: .notFound)

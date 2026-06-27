@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ContentView: View {
-    private let dnsServer = DnsServer(hostIP: "127.0.0.1", port: 5300)
+    private let dnsServer = DnsServer(hostIP: NetworkUtility.localIPAddress(), port: 5300)
     private let httpServer = HttpServer()
 
     private static let appSupportURL: URL = {
@@ -22,32 +22,32 @@ struct ContentView: View {
     private let playerManager = PlayerManager(dataDirectory: appSupportURL.appendingPathComponent("players"))
     private let dlcList       = DlcList(dataDirectory: appSupportURL.appendingPathComponent("dlc"))
     private let configuration = Configuration.default
+    private let gameSpyServer = GameSpyServer()
 
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
-        }
-        .padding()
-        .task {
-            do {
-                try await dnsServer.start()
-            } catch {
-                print("Failed to start DNS server: \(error)")
+        DebugLogView()
+            .task {
+                do {
+                    try await dnsServer.start()
+                } catch {
+                    log("Failed to start DNS server: \(error)")
+                }
+                do {
+                    try await httpServer.start(
+                        userManager: userManager,
+                        playerManager: playerManager,
+                        dlcList: dlcList,
+                        configuration: configuration
+                    )
+                } catch {
+                    log("Failed to start HTTP server: \(error)")
+                }
+                do {
+                    try await gameSpyServer.start(playerManager: playerManager, userManager: userManager)
+                } catch {
+                    log("Failed to start GameSpy server: \(error)")
+                }
             }
-            do {
-                try await httpServer.start(
-                    userManager: userManager,
-                    playerManager: playerManager,
-                    dlcList: dlcList,
-                    configuration: configuration
-                )
-            } catch {
-                print("Failed to start HTTP server: \(error)")
-            }
-        }
     }
 }
 

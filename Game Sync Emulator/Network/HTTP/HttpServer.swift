@@ -1,5 +1,4 @@
 import NIO
-@preconcurrency import NIOSSL
 import NIOHTTP1
 
 actor HttpServer {
@@ -33,29 +32,20 @@ actor HttpServer {
             .bind(host: "0.0.0.0", port: 8080)
             .get()
 
-        print("HTTP server listening on port 8080")
+        log("HTTP server listening on port 8080")
 
-        // HTTPS on port 8443 (pfctl redirects 443 → 8443 in dev)
-        // Failure here is non-fatal — plain HTTP still works, HTTPS just won't be available.
+        // HTTPS on port 8443 using a custom SSL 3.0 / RC4 handler (pfctl redirects 443 → 8443 in dev).
+        // The DS sends client_version=0x0300 (SSL 3.0) with RC4-only ciphers, which BoringSSL
+        // dropped. We implement the minimal SSL 3.0 handshake and RC4 record layer directly.
         do {
-            let (certChain, privateKey) = try CertificateGenerator.load()
-
-            var tlsConfig = TLSConfiguration.makeServerConfiguration(
-                certificateChain: certChain.map { .certificate($0) },
-                privateKey: .privateKey(privateKey)
-            )
-            tlsConfig.minimumTLSVersion = .tlsv1
-            // Include RC4 ciphers required by the DS alongside modern fallbacks.
-            tlsConfig.cipherSuites = "RC4-SHA:RC4-MD5:AES128-SHA:AES256-SHA"
-
-            let sslContext = try NIOSSLContext(configuration: tlsConfig)
+            let (certDER, caDER, privKey) = try CertificateGenerator.loadSSL3()
 
             tlsChannel = try await ServerBootstrap(group: group)
                 .serverChannelOption(ChannelOptions.backlog, value: 256)
                 .serverChannelOption(ChannelOptions.socketOption(.so_reuseaddr), value: 1)
                 .childChannelInitializer { channel in
-                    let sslHandler = NIOSSLServerHandler(context: sslContext)
-                    return channel.pipeline.addHandler(sslHandler).flatMap {
+                    let ssl3 = Ssl3Handler(serverCertDER: certDER, caCertDER: caDER, privateKey: privKey)
+                    return channel.pipeline.addHandler(ssl3).flatMap {
                         channel.pipeline.configureHTTPServerPipeline()
                     }.flatMap {
                         channel.pipeline.addHandler(HttpChannelHandler(router: router))
@@ -64,9 +54,9 @@ actor HttpServer {
                 .bind(host: "0.0.0.0", port: 8443)
                 .get()
 
-            print("HTTPS server listening on port 8443")
+            log("HTTPS server listening on port 8443")
         } catch {
-            print("HTTPS server failed to start: \(error)")
+            log("HTTPS server failed to start: \(error)")
         }
     }
 

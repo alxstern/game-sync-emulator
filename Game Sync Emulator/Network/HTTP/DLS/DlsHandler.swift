@@ -17,7 +17,7 @@ struct DlsHandler: HttpRequestHandler {
         }
 
         guard let session = await userManager.serviceSession(authToken: dlsRequest.serviceToken, service: "dls1.nintendowifi.net") else {
-            print("DLS: rejected — service session not found or expired")
+            log("DLS: rejected — service session not found or expired")
             return .unauthorized()
         }
 
@@ -28,13 +28,13 @@ struct DlsHandler: HttpRequestHandler {
         let gameCode = normalizedGameCode(dlsRequest.dlcGameCode)
         let type     = normalizedDlcType(dlsRequest.dlcType)
 
-        print("DLS: action=\(dlsRequest.action) gameCode=\(gameCode) type=\(type)")
+        log("DLS: action=\(dlsRequest.action) gameCode=\(gameCode) type=\(type)")
 
         switch dlsRequest.action {
         case "list":     return handleList(dlsRequest, user: user, gameCode: gameCode, type: type)
         case "contents": return handleContents(dlsRequest, user: user, gameCode: gameCode, type: type)
         default:
-            print("DLS: unknown action '\(dlsRequest.action)'")
+            log("DLS: unknown action '\(dlsRequest.action)'")
             return .notFound()
         }
     }
@@ -70,7 +70,7 @@ struct DlsHandler: HttpRequestHandler {
         guard let dlc else { return .notFound() }
 
         guard var fileData = try? Data(contentsOf: dlc.path) else {
-            print("DLS: could not read DLC file at \(dlc.path.path)")
+            log("DLS: could not read DLC file at \(dlc.path.path)")
             return .internalError()
         }
 

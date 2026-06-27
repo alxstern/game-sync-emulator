@@ -19,6 +19,7 @@ actor GameSpyServer {
         let port = self.port
 
         listener.newConnectionHandler = { [weak self] nwConn in
+            log("GameSpy: connection accepted from \(nwConn.endpoint)")
             Task { [weak self] in
                 guard let self else { return }
                 let conn = GameSpyConnection(connection: nwConn, playerManager: playerManager, userManager: userManager)
@@ -30,9 +31,9 @@ actor GameSpyServer {
         listener.stateUpdateHandler = { state in
             switch state {
             case .ready:
-                print("GameSpy server listening on port \(port)")
+                log("GameSpy server listening on port \(port)")
             case .failed(let error):
-                print("GameSpy server failed: \(error)")
+                log("GameSpy server failed: \(error)")
             default:
                 break
             }
@@ -47,7 +48,7 @@ actor GameSpyServer {
         connections.removeAll()
         listener?.cancel()
         listener = nil
-        print("GameSpy server stopped")
+        log("GameSpy server stopped")
     }
 
     private func add(_ connection: GameSpyConnection) {

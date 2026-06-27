@@ -13,14 +13,14 @@ struct NasHandler: HttpRequestHandler {
             return encode(returnCode: .badRequest)
         }
 
-        print("NAS: action=\(nasRequest.action)")
+        log("NAS: action=\(nasRequest.action)")
 
         switch nasRequest.action {
         case "login":       return await handleLogin(nasRequest)
         case "acctcreate":  return await handleCreateAccount(nasRequest)
         case "SVCLOC":      return await handleServiceLocation(nasRequest)
         default:
-            print("NAS: unknown action '\(nasRequest.action)'")
+            log("NAS: unknown action '\(nasRequest.action)'")
             return encode(returnCode: .badRequest)
         }
     }
@@ -47,7 +47,7 @@ struct NasHandler: HttpRequestHandler {
         guard let user else { return encode(returnCode: .userNotFound) }
 
         let credentials = await userManager.createServiceSession(for: user, service: "gamespy", branchCode: branchCode)
-        print("NAS: created GameSpy session for user \(user.formattedId)")
+        log("NAS: created GameSpy session for user \(user.formattedId)")
         return encode([("locator", "gamespy.com"), ("token", credentials.authToken), ("challenge", credentials.challenge)])
     }
 
@@ -56,7 +56,7 @@ struct NasHandler: HttpRequestHandler {
     private func handleCreateAccount(_ request: NasRequest) async -> HttpResponse {
         do {
             let user = try await userManager.registerUser(id: request.userId, password: request.password)
-            print("NAS: created account for user \(user.formattedId)")
+            log("NAS: created account for user \(user.formattedId)")
             return encode(returnCode: .registrationSuccess)
         } catch UserManager.Failure.invalidUserId, UserManager.Failure.duplicateUserId {
             return encode(returnCode: .userAlreadyExists)
@@ -68,6 +68,7 @@ struct NasHandler: HttpRequestHandler {
     // POST /ac action=SVCLOC
     // Authenticates a user and returns a service token + host for PGL ("0000") or DLS ("9000").
     private func handleServiceLocation(_ request: NasRequest) async -> HttpResponse {
+        log("NAS: SVCLOC svc=\(request.serviceType ?? "?")")
         guard let user = await userManager.authenticateUser(id: request.userId, password: request.password) else {
             return encode(returnCode: .userNotFound)
         }
@@ -80,7 +81,7 @@ struct NasHandler: HttpRequestHandler {
         }
 
         let credentials = await userManager.createServiceSession(for: user, service: service, branchCode: "")
-        print("NAS: created \(service) session for user \(user.formattedId)")
+        log("NAS: created \(service) session for user \(user.formattedId)")
         return encode([("statusdata", "Y"), ("svchost", service), ("servicetoken", credentials.authToken)])
     }
 

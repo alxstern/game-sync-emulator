@@ -26,20 +26,23 @@ struct GameSpyHandler {
                          userManager: UserManager,
                          playerManager: PlayerManager) async -> String? {
         if fields["login"] != nil {
-            return await handleLogin(GameSpyLoginRequest(from: fields), userManager: userManager)
+            return await handleLogin(GameSpyLoginRequest(from: fields), userManager: userManager, fields: fields)
         } else if fields["getprofile"] != nil {
             return handleProfileRequest(GameSpyProfileRequest(from: fields))
         } else if fields["updatepro"] != nil {
             return await handleProfileUpdate(GameSpyProfileUpdateRequest(from: fields), userManager: userManager)
         } else if fields["logout"] != nil || fields["keepalive"] != nil || fields["status"] != nil {
             return nil
+        } else if fields["ka"] != nil {
+            return "\\ka\\\\final\\"
         }
-        print("GameSpy: unrecognized message keys: \(fields.keys.sorted())")
+        log("GameSpy: unrecognized message keys: \(fields.keys.sorted())")
         return nil
     }
 
     private mutating func handleLogin(_ request: GameSpyLoginRequest?,
-                                      userManager: UserManager) async -> String {
+                                      userManager: UserManager,
+                                      fields: [String: String] = [:]) async -> String {
         guard let request else {
             return GameSpyErrorMessage(code: 0, message: "Invalid login request").wireFormat
         }

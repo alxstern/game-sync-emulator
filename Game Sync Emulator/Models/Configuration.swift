@@ -4,7 +4,7 @@ struct Configuration: Codable {
     var allowWfcRegistrationThroughLogin: Bool
 
     static let `default` = Configuration(
-        hostName: "local",
+        hostName: NetworkUtility.localIPAddress(),
         clearPlayerDreamInfoOnWake: true,
         allowWfcRegistrationThroughLogin: true
     )
@@ -14,7 +14,7 @@ struct Configuration: Codable {
 extension Configuration {
     nonisolated init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        hostName                        = try c.decodeIfPresent(String.self, forKey: .hostName)                        ?? "local"
+        hostName                        = try c.decodeIfPresent(String.self, forKey: .hostName)                        ?? NetworkUtility.localIPAddress()
         clearPlayerDreamInfoOnWake      = try c.decodeIfPresent(Bool.self,   forKey: .clearPlayerDreamInfoOnWake)      ?? true
         allowWfcRegistrationThroughLogin = try c.decodeIfPresent(Bool.self,  forKey: .allowWfcRegistrationThroughLogin) ?? true
     }

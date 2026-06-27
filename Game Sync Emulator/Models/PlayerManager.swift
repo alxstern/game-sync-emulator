@@ -24,7 +24,7 @@ actor PlayerManager {
     init(dataDirectory: URL) {
         self.dataDirectory = dataDirectory
         self.players = Self.loadPlayers(from: dataDirectory)
-        print("Loaded \(players.count) player(s)")
+        log("Loaded \(players.count) player(s)")
     }
 
     // nonisolated static so it can be called during init before the actor is fully live.
@@ -45,17 +45,17 @@ actor PlayerManager {
                 let data = try Data(contentsOf: file)
                 var player = try dec.decode(Player.self, from: data)
                 guard GSIDUtility.isValid(player.gameSyncId) else {
-                    print("Error: Invalid Game Sync ID '\(player.gameSyncId)' in \(file.path)")
+                    log("Error: Invalid Game Sync ID '\(player.gameSyncId)' in \(file.path)")
                     continue
                 }
                 guard loaded[player.gameSyncId] == nil else {
-                    print("Error: Duplicate Game Sync ID '\(player.gameSyncId)'")
+                    log("Error: Duplicate Game Sync ID '\(player.gameSyncId)'")
                     continue
                 }
                 player.dataDirectory = file.deletingLastPathComponent()
                 loaded[player.gameSyncId] = player
             } catch {
-                print("Error loading player at \(file.path): \(error)")
+                log("Error loading player at \(file.path): \(error)")
             }
         }
 

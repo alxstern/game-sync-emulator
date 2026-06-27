@@ -15,7 +15,7 @@ struct PglHandler: HttpRequestHandler {
         guard let creds = request.basicAuthCredentials,
               creds.username == Self.authUsername,
               creds.password == Self.authPassword else {
-            print("PGL: rejected — bad credentials")
+            log("PGL: rejected — bad credentials")
             return .unauthorized()
         }
 
@@ -25,11 +25,11 @@ struct PglHandler: HttpRequestHandler {
         }
 
         guard let session = await userManager.serviceSession(authToken: pglRequest.token, service: "external") else {
-            print("PGL: rejected — service session not found or expired")
+            log("PGL: rejected — service session not found or expired")
             return .unauthorized()
         }
 
-        print("PGL: \(request.method) type=\(pglRequest.type) gsid=\(pglRequest.gameSyncId ?? "nil")")
+        log("PGL: \(request.method) type=\(pglRequest.type) gsid=\(pglRequest.gameSyncId ?? "nil")")
 
         switch request.method {
         case .GET:  return await handleGet(pglRequest, user: session.user)
@@ -47,7 +47,7 @@ struct PglHandler: HttpRequestHandler {
         case "savedata.download":  return await handleDownloadSaveData(request, user: user)
         case "savedata.getbw":     return await handleMemoryLink(request, user: user)
         default:
-            print("PGL: unknown GET type '\(request.type)'")
+            log("PGL: unknown GET type '\(request.type)'")
             return .notFound()
         }
     }
@@ -61,7 +61,7 @@ struct PglHandler: HttpRequestHandler {
         case "account.create.upload":    return await handleCreateAccount(request, body: body)
         case "account.createdata":       return await handleCreateData(body: body)
         default:
-            print("PGL: unknown POST type '\(request.type)'")
+            log("PGL: unknown POST type '\(request.type)'")
             return .notFound()
         }
     }
@@ -107,7 +107,7 @@ struct PglHandler: HttpRequestHandler {
             return pglOk(status: 1)
         }
 
-        print("PGL: player \(gsid) downloading save data")
+        log("PGL: player \(gsid) downloading save data")
         var writer = statusWriter(0)
 
         // If awake, send the header but no payload — the DS uses this to confirm wake-up.
@@ -219,7 +219,7 @@ struct PglHandler: HttpRequestHandler {
             return pglOk(status: 5)
         }
 
-        print("PGL: user \(user.formattedId) memory linking with player \(gsid)")
+        log("PGL: user \(user.formattedId) memory linking with player \(gsid)")
         var body = statusData(0)
         body.append(saveData)
         return .ok(body)
@@ -233,10 +233,10 @@ struct PglHandler: HttpRequestHandler {
             return pglOk(status: 1)
         }
 
-        print("PGL: player \(gsid) uploading save data")
+        log("PGL: player \(gsid) uploading save data")
 
         if player.status != .awake {
-            print("PGL warning: player \(gsid) is not AWAKE — existing dream info will be overwritten")
+            log("PGL warning: player \(gsid) is not AWAKE — existing dream info will be overwritten")
         }
 
         do {
@@ -259,7 +259,7 @@ struct PglHandler: HttpRequestHandler {
         do {
             try await playerManager.updatePlayer(player)
         } catch {
-            print("PGL: failed to save player \(gsid): \(error)")
+            log("PGL: failed to save player \(gsid): \(error)")
             return .internalError()
         }
 
@@ -279,7 +279,7 @@ struct PglHandler: HttpRequestHandler {
             do {
                 try await playerManager.updatePlayer(player)
             } catch {
-                print("PGL: failed to save player \(gsid): \(error)")
+                log("PGL: failed to save player \(gsid): \(error)")
                 return .internalError()
             }
         }

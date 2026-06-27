@@ -1,4 +1,6 @@
+import Foundation
 import NIOSSL
+import Security
 
 // Provides the pre-generated TLS certificate chain and private key for the HTTPS server.
 //
@@ -82,4 +84,62 @@ enum CertificateGenerator {
         let key       = try NIOSSLPrivateKey(bytes:  Array(serverKeyPEM.utf8),  format: .pem)
         return (certificateChain: [serverCert, caCert], privateKey: key)
     }
+
+    // Returns the raw material needed by Ssl3Handler (DER-encoded certs + SecKey for RSA decrypt).
+    nonisolated static func loadSSL3() throws -> (serverCertDER: [UInt8], caCertDER: [UInt8], privateKey: SecKey) {
+        let certDER = pemToDER(serverCertPEM)
+        let caDER   = pemToDER(caCertPEM)
+        guard !certDER.isEmpty, !caDER.isEmpty else { throw CertificateError.invalidPEM }
+        guard let privKey = secKeyFromPKCS8PEM(serverKeyPEM) else { throw CertificateError.keyLoadFailed }
+        return (certDER, caDER, privKey)
+    }
+
+    private static func pemToDER(_ pem: String) -> [UInt8] {
+        let b64 = pem.components(separatedBy: "\n")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.hasPrefix("-----") && !$0.isEmpty }
+            .joined()
+        return Array(Data(base64Encoded: b64, options: .ignoreUnknownCharacters) ?? Data())
+    }
+
+    // Loads a PKCS#8 PEM private key as a SecKey by stripping the PKCS#8 wrapper to get PKCS#1.
+    private static func secKeyFromPKCS8PEM(_ pem: String) -> SecKey? {
+        let der = pemToDER(pem)
+        guard let pkcs1 = extractPKCS1FromPKCS8(der) else { return nil }
+        var cfError: Unmanaged<CFError>?
+        let attrs: [CFString: Any] = [kSecAttrKeyType: kSecAttrKeyTypeRSA, kSecAttrKeyClass: kSecAttrKeyClassPrivate]
+        return SecKeyCreateWithData(Data(pkcs1) as CFData, attrs as CFDictionary, &cfError)
+    }
+
+    // Parses a PKCS#8 DER blob and returns the inner PKCS#1 RSAPrivateKey bytes.
+    private static func extractPKCS1FromPKCS8(_ der: [UInt8]) -> [UInt8]? {
+        var pos = 0
+
+        func readLen() -> Int? {
+            guard pos < der.count else { return nil }
+            let first = Int(der[pos]); pos += 1
+            if first < 0x80 { return first }
+            let n = first & 0x7F
+            guard pos + n <= der.count else { return nil }
+            var len = 0
+            for _ in 0..<n { len = (len << 8) | Int(der[pos]); pos += 1 }
+            return len
+        }
+
+        guard der[pos] == 0x30 else { return nil }; pos += 1  // outer SEQUENCE
+        guard readLen() != nil else { return nil }
+        guard der[pos] == 0x02 else { return nil }; pos += 1  // version INTEGER
+        guard let vLen = readLen() else { return nil }; pos += vLen
+        guard der[pos] == 0x30 else { return nil }; pos += 1  // algorithm SEQUENCE
+        guard let aLen = readLen() else { return nil }; pos += aLen
+        guard der[pos] == 0x04 else { return nil }; pos += 1  // OCTET STRING
+        guard let contentLen = readLen() else { return nil }
+        guard pos + contentLen <= der.count else { return nil }
+        return Array(der[pos..<pos + contentLen])
+    }
+}
+
+enum CertificateError: Error {
+    case invalidPEM
+    case keyLoadFailed
 }

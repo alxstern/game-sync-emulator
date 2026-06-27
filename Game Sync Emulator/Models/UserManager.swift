@@ -28,7 +28,7 @@ actor UserManager {
     init(dataDirectory: URL) {
         self.dataDirectory = dataDirectory
         self.users = Self.loadUsers(from: dataDirectory)
-        print("Loaded \(users.count) user(s)")
+        log("Loaded \(users.count) user(s)")
     }
 
     // nonisolated static so it can be called during init before the actor is fully live.
@@ -48,12 +48,12 @@ actor UserManager {
                 let data = try Data(contentsOf: file)
                 let user = try dec.decode(User.self, from: data)
                 guard loaded[user.id] == nil else {
-                    print("Error: Duplicate user ID \(user.id)")
+                    log("Error: Duplicate user ID \(user.id)")
                     continue
                 }
                 loaded[user.id] = user
             } catch {
-                print("Error loading user at \(file.path): \(error)")
+                log("Error loading user at \(file.path): \(error)")
             }
         }
 

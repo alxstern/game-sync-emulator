@@ -88,7 +88,7 @@ struct HttpRouter: @unchecked Sendable {
         case "/download":
             return await DlsHandler(userManager: userManager, dlcList: dlcList).handle(request)
         default:
-            print("HTTP: unhandled \(request.method) \(request.path)")
+            log("HTTP: unhandled \(request.method) \(request.path)")
             return HttpResponse(status: .notFound)
         }
     }
@@ -141,7 +141,7 @@ final class HttpChannelHandler: ChannelInboundHandler, @unchecked Sendable {
     }
 
     func errorCaught(context: ChannelHandlerContext, error: Error) {
-        print("HTTP connection error: \(error)")
+        log("HTTP connection error: \(error)")
         context.close(promise: nil)
     }
 

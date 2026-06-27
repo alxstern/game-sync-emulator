@@ -15,7 +15,7 @@ final class DlcList: @unchecked Sendable {
 
         for gameCodeDir in gameCodeDirs {
             guard (try? gameCodeDir.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true else {
-                print("Warning: Non-directory '\(gameCodeDir.lastPathComponent)' in DLC root folder")
+                log("Warning: Non-directory '\(gameCodeDir.lastPathComponent)' in DLC root folder")
                 continue
             }
 
@@ -25,7 +25,7 @@ final class DlcList: @unchecked Sendable {
 
             for typeDir in typeDirs {
                 guard (try? typeDir.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true else {
-                    print("Warning: Non-directory '\(typeDir.lastPathComponent)' in DLC subfolder '\(gameCode)'")
+                    log("Warning: Non-directory '\(typeDir.lastPathComponent)' in DLC subfolder '\(gameCode)'")
                     continue
                 }
 
@@ -38,7 +38,7 @@ final class DlcList: @unchecked Sendable {
                     let name = dlcFile.lastPathComponent
 
                     if name == "none" || name == "custom" {
-                        print("Warning: DLC '\(gameCode)/\(type)/\(name)' uses a reserved name")
+                        log("Warning: DLC '\(gameCode)/\(type)/\(name)' uses a reserved name")
                         continue
                     }
 
@@ -51,19 +51,19 @@ final class DlcList: @unchecked Sendable {
         }
 
         entries = loaded
-        print("Loaded \(loaded.count) DLC file(s)")
+        log("Loaded \(loaded.count) DLC file(s)")
     }
 
     private static func load(file: URL, gameCode: String, type: String, index: Int) -> Dlc? {
         let name = file.lastPathComponent
 
         guard (try? file.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory != true else {
-            print("Warning: Directory '\(name)' in \(gameCode) DLC folder")
+            log("Warning: Directory '\(name)' in \(gameCode) DLC folder")
             return nil
         }
 
         guard let data = try? Data(contentsOf: file) else {
-            print("Error: Could not read DLC file at \(file.path)")
+            log("Error: Could not read DLC file at \(file.path)")
             return nil
         }
 
@@ -76,7 +76,7 @@ final class DlcList: @unchecked Sendable {
                        index: index, projectedSize: bytes.count,
                        checksum: computedChecksum, checksumEmbedded: true)
         } else {
-            print("Warning: Checksum mismatch in DLC '\(name)' — checksum will be appended by server")
+            log("Warning: Checksum mismatch in DLC '\(name)' — checksum will be appended by server")
             let fullChecksum = CRC16.calc(bytes)
             return Dlc(path: file, name: name, gameCode: gameCode, type: type,
                        index: index, projectedSize: bytes.count + 2,

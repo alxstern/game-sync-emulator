@@ -10,12 +10,11 @@ struct GameSpyLoginRequest {
         guard let authToken = fields["authtoken"],
               let clientChallenge = fields["challenge"],
               let response = fields["response"],
-              let uniqueNick = fields["uniquenick"],
               let gameName = fields["gamename"] else { return nil }
         self.authToken = authToken
         self.clientChallenge = clientChallenge
         self.response = response
-        self.uniqueNick = uniqueNick
+        self.uniqueNick = fields["uniquenick"] ?? ""
         self.gameName = gameName
         self.id = fields["id"] ?? "1"
     }

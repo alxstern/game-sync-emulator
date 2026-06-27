@@ -28,9 +28,9 @@ actor DnsServer {
         listener.stateUpdateHandler = { state in
             switch state {
             case .ready:
-                print("DNS server listening on port \(port)")
+                log("DNS server listening on port \(port)")
             case .failed(let error):
-                print("DNS server failed: \(error)")
+                log("DNS server failed: \(error)")
             default:
                 break
             }
@@ -43,14 +43,14 @@ actor DnsServer {
     func stop() {
         listener?.cancel()
         listener = nil
-        print("DNS server stopped")
+        log("DNS server stopped")
     }
 
     // Static so it can be called from the newConnectionHandler closure without capturing self.
     private nonisolated static func handle(_ connection: NWConnection, hostIP: String) {
         connection.receiveMessage { data, _, _, error in
             if let error {
-                print("DNS receive error: \(error)")
+                log("DNS receive error: \(error)")
                 return
             }
             guard let data,

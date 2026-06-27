@@ -2,7 +2,7 @@ import Foundation
 
 struct Player: Codable {
     let gameSyncId: String
-    var gameVersion: GameVersion
+    var gameVersion: GameVersion?
     var status: PlayerStatus
     var dreamerInfo: PokemonInfo?
     var cgearSkin: String?
@@ -54,7 +54,7 @@ struct Player: Codable {
 }
 
 extension Player {
-    nonisolated init(gameSyncId: String, gameVersion: GameVersion, dataDirectory: URL? = nil) {
+    nonisolated init(gameSyncId: String, gameVersion: GameVersion? = nil, dataDirectory: URL? = nil) {
         self.gameSyncId       = gameSyncId
         self.gameVersion      = gameVersion
         self.status           = .awake
@@ -80,7 +80,7 @@ extension Player {
     nonisolated func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(gameSyncId,      forKey: .gameSyncId)
-        try c.encode(gameVersion,     forKey: .gameVersion)
+        try c.encodeIfPresent(gameVersion, forKey: .gameVersion)
         try c.encode(status,          forKey: .status)
         try c.encodeIfPresent(dreamerInfo,     forKey: .dreamerInfo)
         try c.encodeIfPresent(cgearSkin,       forKey: .cgearSkin)
@@ -99,7 +99,7 @@ extension Player {
     nonisolated init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         gameSyncId      = try c.decode(String.self,              forKey: .gameSyncId)
-        gameVersion     = try c.decode(GameVersion.self,         forKey: .gameVersion)
+        gameVersion     = try c.decodeIfPresent(GameVersion.self, forKey: .gameVersion)
         status          = try c.decodeIfPresent(PlayerStatus.self,  forKey: .status)        ?? .awake
         dreamerInfo     = try c.decodeIfPresent(PokemonInfo.self,   forKey: .dreamerInfo)
         cgearSkin       = try c.decodeIfPresent(String.self,        forKey: .cgearSkin)

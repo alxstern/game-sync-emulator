@@ -73,7 +73,7 @@ actor PlayerManager {
         for player in players.values { try? savePlayer(player) }
     }
 
-    func registerPlayer(gameSyncId: String, gameVersion: GameVersion) throws -> Player {
+    func registerPlayer(gameSyncId: String, gameVersion: GameVersion? = nil) throws -> Player {
         guard GSIDUtility.isValid(gameSyncId)    else { throw Failure.invalidGameSyncId }
         guard players[gameSyncId] == nil         else { throw Failure.duplicateGameSyncId }
 

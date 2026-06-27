@@ -22,6 +22,20 @@ struct HttpRequest {
     func queryValue(for key: String) -> String? {
         queryItems.first { $0.name == key }?.value
     }
+
+    var rawQueryString: String {
+        URLComponents(string: head.uri)?.query ?? ""
+    }
+
+    var basicAuthCredentials: (username: String, password: String)? {
+        guard let auth = head.headers["authorization"].first,
+              auth.hasPrefix("Basic "),
+              let data = Data(base64Encoded: String(auth.dropFirst(6))),
+              let decoded = String(data: data, encoding: .utf8) else { return nil }
+        let parts = decoded.split(separator: ":", maxSplits: 1)
+        guard parts.count == 2 else { return nil }
+        return (username: String(parts[0]), password: String(parts[1]))
+    }
 }
 
 // MARK: - Response
@@ -69,6 +83,10 @@ struct HttpRouter: @unchecked Sendable {
             )
         case "/ac":
             return await NasHandler(userManager: userManager, configuration: configuration).handle(request)
+        case "/dsio/gw":
+            return await PglHandler(userManager: userManager, playerManager: playerManager, dlcList: dlcList, configuration: configuration).handle(request)
+        case "/download":
+            return await DlsHandler(userManager: userManager, dlcList: dlcList).handle(request)
         default:
             print("HTTP: unhandled \(request.method) \(request.path)")
             return HttpResponse(status: .notFound)

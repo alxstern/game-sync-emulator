@@ -74,7 +74,7 @@ struct LittleEndianReader {
 }
 
 struct LittleEndianWriter {
-    private(set) var data = Data()
+    var data = Data()
 
     mutating func writeBytes(_ byte: UInt8, count: Int) {
         data.append(contentsOf: repeatElement(byte, count: count))

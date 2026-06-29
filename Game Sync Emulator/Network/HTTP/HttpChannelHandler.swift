@@ -73,9 +73,9 @@ struct HttpRouter: @unchecked Sendable {
     let configuration: Configuration
 
     func route(_ request: HttpRequest) async -> HttpResponse {
+        log("HTTP: routing \(request.method) \(request.path) host=\(request.headers.first(name: "host") ?? "?")")
         switch request.path {
         case "/":
-            // Nintendo conntest — must include X-Organization header or the DS shows error 052210-1.
             return HttpResponse(
                 status: .ok,
                 headers: [("X-Organization", "Nintendo")],
@@ -107,6 +107,7 @@ final class HttpChannelHandler: ChannelInboundHandler, @unchecked Sendable {
     typealias OutboundOut = HTTPServerResponsePart
 
     private var requestHead: HTTPRequestHead?
+    private var requestVersion: HTTPVersion = .http1_1
     private var bodyAccumulator = Data()
     private let router: HttpRouter
 
@@ -114,10 +115,16 @@ final class HttpChannelHandler: ChannelInboundHandler, @unchecked Sendable {
         self.router = router
     }
 
+    func channelActive(context: ChannelHandlerContext) {
+        log("HTTP: connection from \(context.remoteAddress?.description ?? "?")")
+        context.fireChannelActive()
+    }
+
     func channelRead(context: ChannelHandlerContext, data: NIOAny) {
         switch unwrapInboundIn(data) {
         case .head(let head):
             requestHead = head
+            requestVersion = head.version
             bodyAccumulator.removeAll(keepingCapacity: true)
         case .body(var buffer):
             if let bytes = buffer.readBytes(length: buffer.readableBytes) {
@@ -125,6 +132,7 @@ final class HttpChannelHandler: ChannelInboundHandler, @unchecked Sendable {
             }
         case .end:
             guard let head = requestHead else { return }
+            log("HTTP: \(head.method) \(head.uri) \(head.version) headers=\(head.headers.map { "\($0.name):\($0.value)" }.joined(separator: ","))")
             let request = HttpRequest(head: head, body: bodyAccumulator)
             requestHead = nil
             bodyAccumulator.removeAll(keepingCapacity: true)
@@ -148,9 +156,11 @@ final class HttpChannelHandler: ChannelInboundHandler, @unchecked Sendable {
     private func write(_ response: HttpResponse, to context: ChannelHandlerContext) {
         var headers = HTTPHeaders(response.headers)
         headers.add(name: "Content-Length", value: "\(response.body.count)")
-        headers.add(name: "Connection", value: "close")
+        if requestVersion == .http1_1 {
+            headers.add(name: "Connection", value: "close")
+        }
 
-        let head = HTTPResponseHead(version: .http1_1, status: response.status, headers: headers)
+        let head = HTTPResponseHead(version: requestVersion, status: response.status, headers: headers)
         context.write(wrapOutboundOut(.head(head)), promise: nil)
 
         if !response.body.isEmpty {
@@ -160,5 +170,6 @@ final class HttpChannelHandler: ChannelInboundHandler, @unchecked Sendable {
         }
 
         context.writeAndFlush(wrapOutboundOut(.end(nil)), promise: nil)
+        context.close(promise: nil)
     }
 }

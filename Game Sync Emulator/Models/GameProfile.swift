@@ -1,5 +1,5 @@
 struct GameProfile: Codable {
-    let id: Int
+    var id: Int
     var firstName: String?
     var lastName: String?
     var aimName: String?

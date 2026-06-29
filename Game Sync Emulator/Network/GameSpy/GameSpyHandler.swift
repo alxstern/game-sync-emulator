@@ -13,7 +13,7 @@ struct GameSpyHandler {
     private let serverChallenge: String
 
     nonisolated init() {
-        serverChallenge = CredentialGenerator.generateChallenge(length: 8)
+        serverChallenge = CredentialGenerator.generateChallenge(length: 10)
     }
 
     // Sent immediately on TCP connect.
@@ -25,6 +25,8 @@ struct GameSpyHandler {
     mutating func handle(_ fields: [String: String],
                          userManager: UserManager,
                          playerManager: PlayerManager) async -> String? {
+        let msgType = fields.keys.sorted().joined(separator: ",")
+        log("GameSpy: recv [\(msgType)]")
         if fields["login"] != nil {
             return await handleLogin(GameSpyLoginRequest(from: fields), userManager: userManager, fields: fields)
         } else if fields["getprofile"] != nil {
@@ -44,17 +46,22 @@ struct GameSpyHandler {
                                       userManager: UserManager,
                                       fields: [String: String] = [:]) async -> String {
         guard let request else {
+            log("GameSpy: login parse failed")
             return GameSpyErrorMessage(code: 0, message: "Invalid login request").wireFormat
         }
 
+        log("GameSpy: login authToken=\(request.authToken.prefix(12))… profileId=\(request.profileId) game=\(request.gameName)")
+
         guard let session = await userManager.serviceSession(authToken: request.authToken, service: "gamespy") else {
+            log("GameSpy: login rejected — session not found for authToken \(request.authToken.prefix(12))…")
             return GameSpyErrorMessage(code: 256, message: "Authentication failed").wireFormat
         }
+        log("GameSpy: session found for user \(session.user.formattedId)")
 
         let user = session.user
         let branchCode = session.branchCode
 
-        let profile: GameProfile
+        var profile: GameProfile
         if let existing = user.profile(for: branchCode) {
             profile = existing
         } else {
@@ -65,12 +72,26 @@ struct GameSpyHandler {
             }
         }
 
+        // Reconcile the profile ID. The DS sends its expected value (friend-code-derived) in
+        // the login request. A manual override stored on the user takes priority. Either way,
+        // persist the corrected ID so lc=2 and all getprofile replies agree.
+        let overrideId = user.profileIdOverride > 0 ? user.profileIdOverride : request.profileId
+        if overrideId > 0, overrideId != profile.id {
+            profile.id = overrideId
+            var updatedUser = user
+            updatedUser.profiles[branchCode] = profile
+            updatedUser.profileIdOverride = 0
+            try? await userManager.updateUser(updatedUser)
+        }
+
         let sessKey = Int.random(in: 1..<Int(Int32.max))
         state = .authenticated(user: user, profile: profile, branchCode: branchCode, sessKey: sessKey)
+        let proof = computeProof(challengeHash: session.challengeHash, authToken: request.authToken, clientChallenge: request.clientChallenge)
+        log("GameSpy: sending lc=2 profileId=\(profile.id) proof=\(proof)")
 
         return GameSpyLoginResponse(
             sessKey: sessKey,
-            proof: computeProof(challengeHash: session.challengeHash, clientChallenge: request.clientChallenge),
+            proof: proof,
             userId: user.id,
             profileId: profile.id,
             uniqueNick: user.formattedId,
@@ -107,8 +128,7 @@ struct GameSpyHandler {
         return nil
     }
 
-    // TODO: verify exact proof formula against DS expectations during hardware testing.
-    private func computeProof(challengeHash: String, clientChallenge: String) -> String {
-        MD5.digest(challengeHash + String(repeating: " ", count: 48) + clientChallenge + serverChallenge + challengeHash)
+    private func computeProof(challengeHash: String, authToken: String, clientChallenge: String) -> String {
+        MD5.digest(challengeHash + String(repeating: " ", count: 48) + authToken + serverChallenge + clientChallenge + challengeHash)
     }
 }

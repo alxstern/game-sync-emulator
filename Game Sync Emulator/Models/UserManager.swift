@@ -123,6 +123,12 @@ actor UserManager {
         return session.service == service ? session : nil
     }
 
+    func setProfileIdOverride(userId: String, profileId: Int) {
+        guard users[userId] != nil else { return }
+        users[userId]!.profileIdOverride = profileId
+        log("PID tool: set profileId override \(profileId) for user \(userId)")
+    }
+
     func user(id: String) -> User?      { users[id] }
     func userExists(id: String) -> Bool  { users[id] != nil }
     var allUsers: [User]                { Array(users.values) }

@@ -25,8 +25,9 @@ struct ContentView: View {
     private let gameSpyServer = GameSpyServer()
 
     var body: some View {
-        DebugLogView()
+        DebugLogView(userManager: userManager)
             .task {
+                PortForwardingManager.setup()
                 do {
                     try await dnsServer.start()
                 } catch {
@@ -46,6 +47,20 @@ struct ContentView: View {
                     try await gameSpyServer.start(playerManager: playerManager, userManager: userManager)
                 } catch {
                     log("Failed to start GameSpy server: \(error)")
+                }
+                // Forward new relay log lines into the debug view so per-query relay events are visible.
+                Task.detached {
+                    let initial = (try? String(contentsOfFile: "/tmp/entralinked_relay.log"))
+                        .map { $0.components(separatedBy: "\n").filter { !$0.isEmpty }.count } ?? 0
+                    var knownLines = initial
+                    while true {
+                        try? await Task.sleep(nanoseconds: 1_500_000_000)
+                        guard let content = try? String(contentsOfFile: "/tmp/entralinked_relay.log") else { continue }
+                        let lines = content.components(separatedBy: "\n").filter { !$0.isEmpty }
+                        guard lines.count > knownLines else { continue }
+                        for line in lines[knownLines...] { log("relay: \(line)") }
+                        knownLines = lines.count
+                    }
                 }
             }
     }

@@ -16,14 +16,18 @@ enum DnsQueryHandler {
 
         // Walk the QNAME labels (each prefixed with a length byte, terminated by 0x00).
         var offset = 12
+        var labels: [String] = []
         while offset < bytes.count && bytes[offset] != 0 {
             let labelLength = Int(bytes[offset])
             guard offset + 1 + labelLength < bytes.count else { return nil }
+            let label = String(bytes: bytes[(offset + 1)..<(offset + 1 + labelLength)], encoding: .ascii) ?? "?"
+            labels.append(label)
             offset += 1 + labelLength
         }
         // Skip null terminator (1) + QTYPE (2) + QCLASS (2).
         guard offset + 5 <= bytes.count else { return nil }
         offset += 5
+        log("DNS: resolving \(labels.joined(separator: ".")) → \(hostIP)")
 
         let ipParts = hostIP.split(separator: ".").compactMap { UInt8($0) }
         guard ipParts.count == 4 else { return nil }

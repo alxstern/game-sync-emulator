@@ -12,24 +12,28 @@ struct PglHandler: HttpRequestHandler {
     let configuration: Configuration
 
     func handle(_ request: HttpRequest) async -> HttpResponse {
+        log("PGL: \(request.method) \(request.path) query=\(request.rawQueryString.prefix(100))")
         guard let creds = request.basicAuthCredentials,
               creds.username == Self.authUsername,
               creds.password == Self.authPassword else {
-            log("PGL: rejected — bad credentials")
+            log("PGL: rejected — bad credentials (auth header: \(request.headers.first(name: "authorization") ?? "none"))")
             return .unauthorized()
         }
 
         guard let fields = try? URLEncodedFormCodec.parse(request.rawQueryString, base64Values: false),
               let pglRequest = PglRequest(from: fields) else {
+            log("PGL: rejected — failed to parse request (query=\(request.rawQueryString))")
             return .unauthorized()
         }
+
+        log("PGL: parsed type=\(pglRequest.type) gsid=\(pglRequest.gameSyncId ?? "nil") tok=\(pglRequest.token.prefix(12))…")
 
         guard let session = await userManager.serviceSession(authToken: pglRequest.token, service: "external") else {
-            log("PGL: rejected — service session not found or expired")
+            log("PGL: rejected — service session not found (tok=\(pglRequest.token.prefix(12))…)")
             return .unauthorized()
         }
 
-        log("PGL: \(request.method) type=\(pglRequest.type) gsid=\(pglRequest.gameSyncId ?? "nil")")
+        log("PGL: \(request.method) type=\(pglRequest.type) gsid=\(pglRequest.gameSyncId ?? "nil") user=\(session.user.formattedId)")
 
         switch request.method {
         case .GET:  return await handleGet(pglRequest, user: session.user)

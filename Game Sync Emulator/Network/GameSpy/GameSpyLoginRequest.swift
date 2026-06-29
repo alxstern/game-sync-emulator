@@ -5,6 +5,7 @@ struct GameSpyLoginRequest {
     let uniqueNick: String
     let gameName: String
     let id: String
+    let profileId: Int
 
     init?(from fields: [String: String]) {
         guard let authToken = fields["authtoken"],
@@ -17,5 +18,6 @@ struct GameSpyLoginRequest {
         self.uniqueNick = fields["uniquenick"] ?? ""
         self.gameName = gameName
         self.id = fields["id"] ?? "1"
+        self.profileId = fields["profileid"].flatMap(Int.init) ?? 0
     }
 }

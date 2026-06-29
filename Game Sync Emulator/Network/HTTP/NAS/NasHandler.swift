@@ -75,8 +75,8 @@ struct NasHandler: HttpRequestHandler {
 
         let service: String
         switch request.serviceType {
-        case "0000": service = "external"               // Pokémon Global Link
-        case "9000": service = "dls1.nintendowifi.net"  // Download Service
+        case "0000": service = "external"
+        case "9000": service = "dls1.nintendowifi.net"
         default:     return encode(returnCode: .badRequest)
         }
 

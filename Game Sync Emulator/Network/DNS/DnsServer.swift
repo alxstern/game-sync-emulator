@@ -21,6 +21,12 @@ actor DnsServer {
         let port = self.port
 
         listener.newConnectionHandler = { connection in
+            log("DNS: query from \(connection.endpoint)")
+            connection.stateUpdateHandler = { state in
+                if case .failed(let error) = state {
+                    log("DNS connection error: \(error)")
+                }
+            }
             connection.start(queue: .global())
             DnsServer.handle(connection, hostIP: hostIP)
         }
@@ -53,9 +59,15 @@ actor DnsServer {
                 log("DNS receive error: \(error)")
                 return
             }
-            guard let data,
-                  let response = DnsQueryHandler.respond(to: data, hostIP: hostIP) else { return }
-            connection.send(content: response, completion: .idempotent)
+            guard let data else { log("DNS: nil data from \(connection.endpoint)"); return }
+            guard let response = DnsQueryHandler.respond(to: data, hostIP: hostIP) else {
+                log("DNS: failed to build response for \(data.count)-byte query from \(connection.endpoint)")
+                return
+            }
+            log("DNS: sending \(response.count)B response to \(connection.endpoint)")
+            connection.send(content: response, completion: .contentProcessed { error in
+                if let error { log("DNS send error: \(error)") }
+            })
         }
     }
 }

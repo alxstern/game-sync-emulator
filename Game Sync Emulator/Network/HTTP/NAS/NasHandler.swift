@@ -13,7 +13,7 @@ struct NasHandler: HttpRequestHandler {
             return encode(returnCode: .badRequest)
         }
 
-        log("NAS: action=\(nasRequest.action)")
+        log("NAS: action=\(nasRequest.action) rawBody=\(bodyString)")
 
         switch nasRequest.action {
         case "login":       return await handleLogin(nasRequest)
@@ -74,27 +74,45 @@ struct NasHandler: HttpRequestHandler {
         }
 
         let service: String
+        let svchost: String
         switch request.serviceType {
-        case "0000": service = "external"
-        case "9000": service = "dls1.nintendowifi.net"
+        case "0000": service = "external"; svchost = service
+        case "9000": service = "dls1.nintendowifi.net"; svchost = service
         default:     return encode(returnCode: .badRequest)
         }
 
         let credentials = await userManager.createServiceSession(for: user, service: service, branchCode: "")
-        log("NAS: created \(service) session for user \(user.formattedId)")
-        return encode([("statusdata", "Y"), ("svchost", service), ("servicetoken", credentials.authToken)])
+        log("NAS: created \(service) session tok=\(credentials.authToken.prefix(10))… user=\(user.formattedId)")
+
+        let response = encodeServiceLocation(statusdata: "Y", svchost: svchost, servicetoken: credentials.authToken)
+        log("NAS: SVCLOC svchost=\(svchost) response body(\(response.body.count)B)=\(String(data: response.body, encoding: .utf8) ?? "<non-utf8>")")
+        return response
+    }
+
+    // Field order matches the original's actual wire output, verified against a live capture.
+    private func encodeServiceLocation(statusdata: String, svchost: String, servicetoken: String) -> HttpResponse {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyMMddHHmmss"
+        let pairs: [(String, String)] = [
+            ("statusdata",    statusdata),
+            ("svchost",       svchost),
+            ("servicetoken",  servicetoken),
+            ("datetime",      formatter.string(from: Date())),
+            ("returncd",      NasReturnCode.success.formatted)
+        ]
+        return .ok(Data(URLEncodedFormCodec.encode(pairs).utf8))
     }
 
     // Encodes a NAS response as a URL-encoded form with Base64 values.
-    // Every NAS response includes returncd and datetime.
+    // Every NAS response includes datetime and returncd, in that order, last.
     private func encode(_ pairs: [(String, String)] = [], returnCode: NasReturnCode = .success) -> HttpResponse {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyMMddHHmmss"
-        var all: [(String, String)] = [
-            ("returncd", returnCode.formatted),
-            ("datetime", formatter.string(from: Date()))
-        ]
-        all.append(contentsOf: pairs)
-        return .ok(Data(URLEncodedFormCodec.encode(all).utf8))
+        var all = pairs
+        all.append(("datetime", formatter.string(from: Date())))
+        all.append(("returncd", returnCode.formatted))
+        let bodyString = URLEncodedFormCodec.encode(all)
+        log("NAS: response=\(bodyString)")
+        return .ok(Data(bodyString.utf8))
     }
 }

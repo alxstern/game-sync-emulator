@@ -153,14 +153,25 @@ final class HttpChannelHandler: ChannelInboundHandler, @unchecked Sendable {
         context.close(promise: nil)
     }
 
+    private static let rfc1123Formatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = TimeZone(identifier: "GMT")
+        f.dateFormat = "EEE, dd MMM yyyy HH:mm:ss zzz"
+        return f
+    }()
+
     private func write(_ response: HttpResponse, to context: ChannelHandlerContext) {
         var headers = HTTPHeaders(response.headers)
-        headers.add(name: "Content-Length", value: "\(response.body.count)")
-        if requestVersion == .http1_1 {
-            headers.add(name: "Connection", value: "close")
+        headers.add(name: "Date", value: Self.rfc1123Formatter.string(from: Date()))
+        if !headers.contains(name: "Content-Type") {
+            headers.add(name: "Content-Type", value: "text/plain")
         }
+        headers.add(name: "Content-Length", value: "\(response.body.count)")
+        headers.add(name: "Server", value: "Jetty(11.0.15)")
 
-        let head = HTTPResponseHead(version: requestVersion, status: response.status, headers: headers)
+        // Original entralinked (Jetty) always responds HTTP/1.1 regardless of request version.
+        let head = HTTPResponseHead(version: .http1_1, status: response.status, headers: headers)
         context.write(wrapOutboundOut(.head(head)), promise: nil)
 
         if !response.body.isEmpty {

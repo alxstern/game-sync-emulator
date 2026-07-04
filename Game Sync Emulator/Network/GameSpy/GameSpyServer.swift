@@ -54,4 +54,15 @@ actor GameSpyServer {
     private func add(_ connection: GameSpyConnection) {
         connections.append(connection)
     }
+
+    func pushToUser(userId: String, message: String) async {
+        for conn in connections {
+            if await conn.authenticatedUserId == userId {
+                await conn.sendPush(message)
+                log("GameSpy: pushed \(message.prefix(60)) to user \(userId)")
+                return
+            }
+        }
+        log("GameSpy: push to user \(userId) — no active connection found")
+    }
 }

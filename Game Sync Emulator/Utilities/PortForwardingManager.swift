@@ -38,6 +38,7 @@ def udp_relay():
     def handle(data, addr):
         r = None
         try:
+            log('UDP recv ' + str(len(data)) + 'B from ' + str(addr))
             r = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             r.settimeout(2)
             r.sendto(data, ('127.0.0.1', 5300))
@@ -68,6 +69,7 @@ def tcp_relay(listen_port, forward_port):
     def handle(conn, addr):
         with conn:
             try:
+                log('TCP :' + str(listen_port) + ' conn from ' + str(addr))
                 r = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 r.connect(('127.0.0.1', forward_port))
                 log('TCP :' + str(listen_port) + ' accepted ' + str(addr) + ' -> :' + str(forward_port))
@@ -109,10 +111,9 @@ while True:
             return
         }
 
-        // pfctl -F all nukes every rule/state/anchor so leftover rdr rules from
-        // previous sessions can't intercept port 53 before Python's socket sees it.
-        // pf.conf is reloaded immediately after to restore system defaults.
-        let cmd = "pfctl -a com.apple/entralinked -F all 2>/dev/null; pkill -9 -f entralinked_relay.py 2>/dev/null; rm -f '\(logPath)'; python3 '\(scriptPath)' < /dev/null > '\(logPath)' 2>&1 & sleep 1; pgrep -f entralinked_relay.py > /dev/null && echo running || cat '\(logPath)'"
+        // IP forwarding allows the Mac to route packets between network interfaces,
+        // which is needed if the DS uses the Mac as its default gateway.
+        let cmd = "pfctl -a com.apple/entralinked -F all 2>/dev/null; pkill -9 -f entralinked_relay.py 2>/dev/null; rm -f '\(logPath)'; sysctl -w net.inet.ip.forwarding=1 >/dev/null 2>&1; python3 '\(scriptPath)' < /dev/null > '\(logPath)' 2>&1 & sleep 1; pgrep -f entralinked_relay.py > /dev/null && echo running || cat '\(logPath)'"
         var errorDict: NSDictionary?
         let result = NSAppleScript(source: "do shell script \"\(cmd)\" with administrator privileges")?
             .executeAndReturnError(&errorDict)
@@ -129,6 +130,19 @@ while True:
             log("Port relay running — \(relayLog.isEmpty ? "no log output" : relayLog)")
         } else {
             log("Port relay startup output: \(output.isEmpty ? "(empty)" : output)")
+        }
+    }
+
+    // Relay runs as root and outlives this process otherwise — call on app exit.
+    @MainActor
+    static func teardown() {
+        var errorDict: NSDictionary?
+        NSAppleScript(source: "do shell script \"pkill -9 -f entralinked_relay.py\" with administrator privileges")?
+            .executeAndReturnError(&errorDict)
+        if let msg = errorDict?["NSAppleScriptErrorMessage"] as? String {
+            log("Port relay teardown error: \(msg)")
+        } else {
+            log("Port relay stopped")
         }
     }
 }

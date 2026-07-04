@@ -10,6 +10,7 @@ actor GameSpyConnection {
     private var handler = GameSpyHandler()
     private let playerManager: PlayerManager
     private let userManager: UserManager
+    private(set) var authenticatedUserId: String?
 
     // GameSpy messages are delimited by \final\ on the wire.
     private static let delimiter = Data("\\final\\".utf8)
@@ -27,6 +28,7 @@ actor GameSpyConnection {
     }
 
     func stop() {
+        log("GameSpy: connection closed from \(connection.endpoint)")
         connection.cancel()
     }
 
@@ -62,7 +64,14 @@ actor GameSpyConnection {
             let response = await h.handle(fields, userManager: userManager, playerManager: playerManager)
             handler = h
             if let response { send(response) }
+            if authenticatedUserId == nil, let uid = handler.userId {
+                authenticatedUserId = uid
+            }
         }
+    }
+
+    func sendPush(_ message: String) {
+        send(message)
     }
 
     private func send(_ message: String) {

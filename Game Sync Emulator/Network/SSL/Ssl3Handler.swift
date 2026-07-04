@@ -2,6 +2,24 @@ import Foundation
 import NIO
 import Security
 
+// Maps session IDs to master secrets so a later connection can resume without a full
+// RSA handshake (e.g. SVCLOC reusing the session from NAS login).
+private final class Ssl3SessionCache: @unchecked Sendable {
+    static let shared = Ssl3SessionCache()
+    private var cache = [Data: (masterSecret: [UInt8], cipherSuite: UInt16)]()
+    private let lock = NSLock()
+
+    func store(id: [UInt8], masterSecret: [UInt8], cipherSuite: UInt16) {
+        lock.lock(); defer { lock.unlock() }
+        cache[Data(id)] = (masterSecret, cipherSuite)
+    }
+
+    func lookup(id: [UInt8]) -> (masterSecret: [UInt8], cipherSuite: UInt16)? {
+        lock.lock(); defer { lock.unlock() }
+        return cache[Data(id)]
+    }
+}
+
 // SSL 3.0 channel handler for Nintendo DS connections.
 //
 // The DS sends client_version=0x0300 (SSL 3.0) with RC4_128_SHA or RC4_128_MD5 only.
@@ -31,6 +49,8 @@ final class Ssl3Handler: ChannelInboundHandler, ChannelOutboundHandler, @uncheck
     private var serverRandom = [UInt8]()
     private var cipherSuite: UInt16 = 0x0005  // default RC4_128_SHA; adjusted from ClientHello
     private var useSHA = true
+    private var sessionId  = [UInt8]()        // session ID we offered in ServerHello
+    private var isResumption = false          // true when doing an abbreviated handshake
 
     // Keying material (set during ClientKeyExchange)
     private var masterSecret = [UInt8]()
@@ -58,9 +78,21 @@ final class Ssl3Handler: ChannelInboundHandler, ChannelOutboundHandler, @uncheck
 
     // MARK: - Inbound path
 
+    func channelActive(context: ChannelHandlerContext) {
+        log("SSL3: accepted connection from \(context.remoteAddress?.description ?? "?")")
+        context.fireChannelActive()
+    }
+
+    func channelInactive(context: ChannelHandlerContext) {
+        log("SSL3: connection closed (state=\(state))")
+        context.fireChannelInactive()
+    }
+
     func channelRead(context: ChannelHandlerContext, data: NIOAny) {
         var buf = unwrapInboundIn(data)
+        let bytesAdded = buf.readableBytes
         inBuffer.writeBuffer(&buf)
+        log("SSL3: channelRead +\(bytesAdded)B state=\(state) bufTotal=\(inBuffer.readableBytes)B")
         processInBuffer(context: context)
     }
 
@@ -159,12 +191,16 @@ final class Ssl3Handler: ChannelInboundHandler, ChannelOutboundHandler, @uncheck
 
     private func handleClientHello(_ body: [UInt8], context: ChannelHandlerContext) {
         // body: version(2) + random(32) + sessionIdLen(1) + sessionId + csSuiteLen(2) + suites + compLen + comp
-        guard body.count >= 34 else { close(context); return }
+        log("SSL3: ClientHello body=\(body.count)B version=\(body.count >= 2 ? String(format: "%02x%02x", body[0], body[1]) : "?")")
+        guard body.count >= 34 else { log("SSL3: ClientHello too short"); close(context); return }
         clientRandom = Array(body[2..<34])
 
         var pos = 34
         guard pos < body.count else { close(context); return }
-        let sessionIdLen = Int(body[pos]); pos += 1 + sessionIdLen
+        let clientSessionIdLen = Int(body[pos]); pos += 1
+        let clientSessionId = clientSessionIdLen > 0 && pos + clientSessionIdLen <= body.count
+            ? Array(body[pos..<pos + clientSessionIdLen]) : []
+        pos += clientSessionIdLen
         guard pos + 2 <= body.count else { close(context); return }
         let csLen = Int(body[pos]) << 8 | Int(body[pos+1]); pos += 2
 
@@ -183,8 +219,24 @@ final class Ssl3Handler: ChannelInboundHandler, ChannelOutboundHandler, @uncheck
             log("SSL3: no supported cipher suite offered by DS"); close(context); return
         }
 
-        state = .waitingForClientKeyExchange
-        sendServerFlight(context: context)
+        // Resume if the DS offers a known session ID — avoids another slow RSA-1024 decrypt
+        // on its end, which matters once a few TLS connections stack up back to back.
+        if !clientSessionId.isEmpty, let session = Ssl3SessionCache.shared.lookup(id: clientSessionId) {
+            sessionId      = clientSessionId
+            masterSecret   = session.masterSecret
+            cipherSuite    = session.cipherSuite
+            useSHA         = (cipherSuite == 0x0005)
+            isResumption   = true
+            state          = .waitingForChangeCipherSpec
+            log("SSL3: resuming session \(clientSessionId.prefix(4).map { String(format: "%02x", $0) }.joined())")
+            sendAbbreviatedServerFlight(context: context)
+        } else {
+            // Full handshake: generate a new 32-byte session ID so the DS can resume later.
+            sessionId    = (0..<32).map { _ in UInt8.random(in: 0...255) }
+            isResumption = false
+            state        = .waitingForClientKeyExchange
+            sendServerFlight(context: context)
+        }
     }
 
     private func handleClientKeyExchange(_ body: [UInt8], context: ChannelHandlerContext) {
@@ -209,21 +261,25 @@ final class Ssl3Handler: ChannelInboundHandler, ChannelOutboundHandler, @uncheck
     }
 
     private func activateClientCipher() {
-        let keys = Ssl3Crypto.deriveKeys(
-            masterSecret: masterSecret,
-            clientRandom: clientRandom,
-            serverRandom: serverRandom,
-            useSHA: useSHA
-        )
-        clientMAC = keys.clientMAC
-        serverMAC = keys.serverMAC
-        clientRC4 = RC4(key: keys.clientKey)
-        serverRC4 = RC4(key: keys.serverKey)
+        if !isResumption {
+            // Full handshake: derive session keys now (master secret just arrived).
+            let keys = Ssl3Crypto.deriveKeys(
+                masterSecret: masterSecret,
+                clientRandom: clientRandom,
+                serverRandom: serverRandom,
+                useSHA: useSHA
+            )
+            clientMAC   = keys.clientMAC
+            serverMAC   = keys.serverMAC
+            clientRC4   = RC4(key: keys.clientKey)
+            serverRC4   = RC4(key: keys.serverKey)
+            readSeqNum  = 0
+            writeSeqNum = 0
+        }
+        // Resumption: keys already derived in sendAbbreviatedServerFlight; just enable decryption.
         clientCipherActive = true
-        readSeqNum  = 0
-        writeSeqNum = 0
         state = .waitingForClientFinished
-        log("SSL3: session keys derived, client cipher active")
+        log("SSL3: client cipher active (resumption=\(isResumption))")
     }
 
     private func handleClientFinished(_ body: [UInt8], context: ChannelHandlerContext) {
@@ -237,12 +293,21 @@ final class Ssl3Handler: ChannelInboundHandler, ChannelOutboundHandler, @uncheck
             log("SSL3: client Finished mismatch — proceeding anyway")
         }
 
-        // Add decrypted client Finished to accumulator for server Finished hash
-        handshakeMessages += [UInt8(20), 0, 0, UInt8(body.count)] + body
-
-        sendServerFinished(context: context)
-        state = .established
-        log("SSL3: handshake complete")
+        if isResumption {
+            // Abbreviated handshake: server already sent CCS+Finished; we're done.
+            state = .established
+            log("SSL3: handshake complete (resumed)")
+        } else {
+            // Full handshake: add client Finished to accumulator, send server CCS+Finished, store session.
+            handshakeMessages += [UInt8(20), 0, 0, UInt8(body.count)] + body
+            sendServerFinished(context: context)
+            state = .established
+            log("SSL3: handshake complete")
+            if !sessionId.isEmpty {
+                Ssl3SessionCache.shared.store(id: sessionId, masterSecret: masterSecret, cipherSuite: cipherSuite)
+                log("SSL3: stored session \(sessionId.prefix(4).map { String(format: "%02x", $0) }.joined())")
+            }
+        }
     }
 
     // MARK: - Server message senders
@@ -257,6 +322,45 @@ final class Ssl3Handler: ChannelInboundHandler, ChannelOutboundHandler, @uncheck
         context.flush()
     }
 
+    // Abbreviated handshake for session resumption: ServerHello + ChangeCipherSpec + Finished.
+    // No certificate exchange — the DS already has the keys from the prior full handshake.
+    private func sendAbbreviatedServerFlight(context: ChannelHandlerContext) {
+        let serverHello = buildServerHello()
+        handshakeMessages += serverHello
+
+        // Re-derive session keys using the stored master secret and fresh randoms.
+        let keys = Ssl3Crypto.deriveKeys(
+            masterSecret: masterSecret,
+            clientRandom: clientRandom,
+            serverRandom: serverRandom,
+            useSHA: useSHA
+        )
+        clientMAC   = keys.clientMAC
+        serverMAC   = keys.serverMAC
+        clientRC4   = RC4(key: keys.clientKey)
+        serverRC4   = RC4(key: keys.serverKey)
+        readSeqNum  = 0
+        writeSeqNum = 0
+
+        // Server Finished (must be computed before adding it to the accumulator).
+        let verifyData  = Ssl3Crypto.finishedHash(masterSecret: masterSecret, handshakeMessages: handshakeMessages, isServer: true)
+        let finishedMsg = buildHandshakeMsg(type: 20, data: verifyData)
+        // Add server Finished so client Finished verification covers it.
+        handshakeMessages += finishedMsg
+
+        let ccs       = makeRecord(type: 20, data: [0x01])
+        let mac       = Ssl3Crypto.mac(key: serverMAC, seqNum: writeSeqNum, contentType: 22, data: finishedMsg, useSHA: useSHA)
+        writeSeqNum  += 1
+        let encrypted  = serverRC4.process(finishedMsg + mac)
+        let finRecord  = makeRecord(type: 22, data: encrypted)
+
+        var buf = context.channel.allocator.buffer(capacity: 256)
+        buf.writeBytes(makeRecord(type: 22, data: serverHello) + ccs + finRecord)
+        context.write(wrapOutboundOut(buf), promise: nil)
+        context.flush()
+        log("SSL3: sent abbreviated flight (ServerHello + CCS + Finished)")
+    }
+
     private func buildServerHello() -> [UInt8] {
         var random = [UInt8](repeating: 0, count: 32)
         let now = UInt32(Date().timeIntervalSince1970)
@@ -269,7 +373,7 @@ final class Ssl3Handler: ChannelInboundHandler, ChannelOutboundHandler, @uncheck
 
         var body: [UInt8] = [0x03, 0x00]            // version SSL 3.0
         body += random
-        body += [0x00]                               // session ID length = 0
+        body += [UInt8(sessionId.count)] + sessionId // session ID (32 bytes or 0 for no resumption)
         body += [UInt8(cipherSuite >> 8), UInt8(cipherSuite & 0xFF)]
         body += [0x00]                               // compression = null
         return buildHandshakeMsg(type: 2, data: body)
@@ -322,6 +426,24 @@ final class Ssl3Handler: ChannelInboundHandler, ChannelOutboundHandler, @uncheck
         var out = context.channel.allocator.buffer(capacity: record.count)
         out.writeBytes(record)
         context.write(wrapOutboundOut(out), promise: promise)
+    }
+
+    // Send an SSL3 close_notify alert before the TCP FIN so the DS closes its write side
+    // promptly rather than waiting for its own timeout (~2s) to expire.
+    func close(context: ChannelHandlerContext, mode: CloseMode, promise: EventLoopPromise<Void>?) {
+        if state == .established {
+            let alertData: [UInt8] = [0x01, 0x00]  // level=warning, description=close_notify
+            let mac       = Ssl3Crypto.mac(key: serverMAC, seqNum: writeSeqNum, contentType: 21, data: alertData, useSHA: useSHA)
+            writeSeqNum  += 1
+            let encrypted  = serverRC4.process(alertData + mac)
+            let record     = makeRecord(type: 21, data: encrypted)
+            var buf = context.channel.allocator.buffer(capacity: record.count)
+            buf.writeBytes(record)
+            context.write(wrapOutboundOut(buf), promise: nil)
+            context.flush()
+            log("SSL3: sent close_notify")
+        }
+        context.close(mode: mode, promise: promise)
     }
 
     // MARK: - Formatting helpers

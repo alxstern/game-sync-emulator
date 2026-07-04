@@ -6,6 +6,7 @@ struct GameSpyLoginRequest {
     let gameName: String
     let id: String
     let profileId: Int
+    let partnerId: Int
 
     init?(from fields: [String: String]) {
         guard let authToken = fields["authtoken"],
@@ -19,5 +20,6 @@ struct GameSpyLoginRequest {
         self.gameName = gameName
         self.id = fields["id"] ?? "1"
         self.profileId = fields["profileid"].flatMap(Int.init) ?? 0
+        self.partnerId = fields["partnerid"].flatMap(Int.init) ?? 0
     }
 }

@@ -12,6 +12,17 @@ struct GameSpyHandler {
     private var state: State = .awaitingLogin
     private let serverChallenge: String
 
+    // Exposed so GameSpyConnection can register the user in GameSpyServer after login.
+    var userId: String? {
+        if case .authenticated(let user, _, _, _) = state { return user.id }
+        return nil
+    }
+
+    var profileId: Int? {
+        if case .authenticated(_, let profile, _, _) = state { return profile.id }
+        return nil
+    }
+
     nonisolated init() {
         serverChallenge = CredentialGenerator.generateChallenge(length: 10)
     }
@@ -33,7 +44,10 @@ struct GameSpyHandler {
             return handleProfileRequest(GameSpyProfileRequest(from: fields))
         } else if fields["updatepro"] != nil {
             return await handleProfileUpdate(GameSpyProfileUpdateRequest(from: fields), userManager: userManager)
-        } else if fields["logout"] != nil || fields["keepalive"] != nil || fields["status"] != nil {
+        } else if fields["status"] != nil {
+            log("GameSpy: status statstring=\(fields["statstring"] ?? "nil") locstring=\(fields["locstring"] ?? "nil")")
+            return validateSessKey(fields["sesskey"] ?? "")
+        } else if fields["logout"] != nil || fields["keepalive"] != nil {
             return nil
         } else if fields["ka"] != nil {
             return "\\ka\\\\final\\"
@@ -50,7 +64,7 @@ struct GameSpyHandler {
             return GameSpyErrorMessage(code: 0, message: "Invalid login request").wireFormat
         }
 
-        log("GameSpy: login authToken=\(request.authToken.prefix(12))… profileId=\(request.profileId) game=\(request.gameName)")
+        log("GameSpy: login authToken=\(request.authToken.prefix(12))… profileId=\(request.profileId) game=\(request.gameName) partnerid=\(request.partnerId) clientChallenge=\(request.clientChallenge) dsResponse=\(request.response)")
 
         guard let session = await userManager.serviceSession(authToken: request.authToken, service: "gamespy") else {
             log("GameSpy: login rejected — session not found for authToken \(request.authToken.prefix(12))…")
@@ -84,17 +98,24 @@ struct GameSpyHandler {
             try? await userManager.updateUser(updatedUser)
         }
 
+        // Verify the DS's client response. If this matches, our challengeHash is correct.
+        let expectedClientProof = computeClientProof(challengeHash: session.challengeHash, authToken: request.authToken, clientChallenge: request.clientChallenge)
+        let clientProofValid = expectedClientProof == request.response
+        log("GameSpy: client proof \(clientProofValid ? "VALID" : "INVALID") expected=\(expectedClientProof) ds_sent=\(request.response)")
+
         let sessKey = Int.random(in: 1..<Int(Int32.max))
         state = .authenticated(user: user, profile: profile, branchCode: branchCode, sessKey: sessKey)
         let proof = computeProof(challengeHash: session.challengeHash, authToken: request.authToken, clientChallenge: request.clientChallenge)
         log("GameSpy: sending lc=2 profileId=\(profile.id) proof=\(proof)")
 
+        // Strip leading zeros: the DS validates lc=2 userid against its
+        // hardware-derived numeric ID, which has no leading zero.
+        let numericUserId = String(Int64(user.id) ?? 0)
         return GameSpyLoginResponse(
             sessKey: sessKey,
             proof: proof,
-            userId: user.id,
+            userId: numericUserId,
             profileId: profile.id,
-            uniqueNick: user.formattedId,
             id: request.id
         ).wireFormat
     }
@@ -118,6 +139,8 @@ struct GameSpyHandler {
                                               userManager: UserManager) async -> String? {
         guard case .authenticated(var user, var profile, let branchCode, let sessKey) = state,
               let request else { return nil }
+        log("GameSpy: updatepro aimName=\(request.aimName ?? "nil") sesskey=\(request.sessKey) expected=\(sessKey)")
+        if let error = validateSessKey(request.sessKey) { return error }
         profile.firstName = request.firstName ?? profile.firstName
         profile.lastName  = request.lastName  ?? profile.lastName
         profile.aimName   = request.aimName   ?? profile.aimName
@@ -128,7 +151,23 @@ struct GameSpyHandler {
         return nil
     }
 
+    // Returns an error message if the received key is wrong, nil if it matches.
+    // Mirrors original Java's GameSpyHandler.validateSessionKey().
+    private func validateSessKey(_ received: String) -> String? {
+        guard case .authenticated(_, _, _, let sessKey) = state else { return nil }
+        log("GameSpy: sesskey check received=\(received) expected=\(sessKey)")
+        guard received == String(sessKey) else {
+            log("GameSpy: invalid sesskey — sending error 0x201")
+            return GameSpyErrorMessage(code: 0x201, message: "Invalid session key.").wireFormat
+        }
+        return nil
+    }
+
     private func computeProof(challengeHash: String, authToken: String, clientChallenge: String) -> String {
         MD5.digest(challengeHash + String(repeating: " ", count: 48) + authToken + serverChallenge + clientChallenge + challengeHash)
+    }
+
+    private func computeClientProof(challengeHash: String, authToken: String, clientChallenge: String) -> String {
+        MD5.digest(challengeHash + String(repeating: " ", count: 48) + authToken + clientChallenge + serverChallenge + challengeHash)
     }
 }

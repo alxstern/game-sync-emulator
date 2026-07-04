@@ -9,6 +9,8 @@ import SwiftUI
 
 @main
 struct Game_Sync_EmulatorApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+
     var body: some Scene {
         WindowGroup {
             ContentView()

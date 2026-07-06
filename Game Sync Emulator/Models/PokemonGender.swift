@@ -1,6 +1,6 @@
 import Foundation
 
-enum PokemonGender: String, Codable {
+enum PokemonGender: String, Codable, Hashable, CaseIterable {
     case male = "MALE"
     case female = "FEMALE"
     case genderless = "GENDERLESS"

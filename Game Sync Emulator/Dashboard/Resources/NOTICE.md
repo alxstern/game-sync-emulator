@@ -1,0 +1,1 @@
+species.json, abilities.json, and items.json are copied from [kuroppoi/entralinked](https://github.com/kuroppoi/entralinked) (MIT License), used for Pokémon species/ability/item name lookups in the dashboard UI.

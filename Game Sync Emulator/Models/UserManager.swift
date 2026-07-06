@@ -6,7 +6,6 @@ actor UserManager {
         case invalidUserId
         case duplicateUserId
         case userNotFound
-        case duplicateProfile
     }
 
     private var users: [String: User]
@@ -92,8 +91,11 @@ actor UserManager {
     }
 
     func createProfile(branchCode: String, forUserId userId: String) throws -> GameProfile {
-        guard users[userId] != nil                            else { throw Failure.userNotFound }
-        guard users[userId]!.profile(for: branchCode) == nil else { throw Failure.duplicateProfile }
+        guard users[userId] != nil else { throw Failure.userNotFound }
+
+        // A second caller racing to create the same profile (e.g. two GameSpy connections
+        // reusing one NAS session) should just get the one that already exists.
+        if let existing = users[userId]!.profile(for: branchCode) { return existing }
 
         let profile = GameProfile(id: Int.random(in: 0..<Int(Int32.max)))
         users[userId]!.profiles[branchCode] = profile

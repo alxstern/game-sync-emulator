@@ -9,10 +9,16 @@ import SwiftUI
 
 struct ContentView: View {
     var body: some View {
-        DebugLogView(userManager: AppServices.shared.userManager)
-            .task {
-                await AppServices.shared.startIfNeeded()
-            }
+        TabView {
+            DebugLogView(userManager: AppServices.shared.userManager)
+                .tabItem { Label("Console", systemImage: "terminal") }
+
+            DashboardView(playerManager: AppServices.shared.playerManager)
+                .tabItem { Label("Dashboard", systemImage: "gamecontroller") }
+        }
+        .task {
+            await AppServices.shared.startIfNeeded()
+        }
     }
 }
 

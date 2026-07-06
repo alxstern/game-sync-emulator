@@ -1,4 +1,4 @@
-enum DreamAnimation: String, Codable {
+enum DreamAnimation: String, Codable, Hashable, CaseIterable {
     case lookAround           = "LOOK_AROUND"
     case walkAround           = "WALK_AROUND"
     case walkLookAround       = "WALK_LOOK_AROUND"

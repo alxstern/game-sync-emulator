@@ -72,7 +72,13 @@ struct GameSpyHandler {
         }
         log("GameSpy: session found for user \(session.user.formattedId)")
 
-        let user = session.user
+        // session.user is a snapshot from when the NAS login created this session — re-fetch
+        // live, since another connection reusing the same session may have created a profile
+        // since (e.g. reconnecting for a different branch code moments later).
+        guard let user = await userManager.user(id: session.user.id) else {
+            log("GameSpy: login rejected — user \(session.user.id) no longer exists")
+            return GameSpyErrorMessage(code: 256, message: "Authentication failed").wireFormat
+        }
         let branchCode = session.branchCode
 
         var profile: GameProfile
@@ -82,6 +88,7 @@ struct GameSpyHandler {
             do {
                 profile = try await userManager.createProfile(branchCode: branchCode, forUserId: user.id)
             } catch {
+                log("GameSpy: profile creation failed for \(user.formattedId) branch=\(branchCode): \(error)")
                 return GameSpyErrorMessage(code: 0, message: "Failed to create profile").wireFormat
             }
         }

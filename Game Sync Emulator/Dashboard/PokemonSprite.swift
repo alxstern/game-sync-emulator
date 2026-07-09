@@ -1,19 +1,46 @@
 import AppKit
 
-// Loads sprite images matching the folder layout in Dashboard/Resources/Sprites/pokemon
-// (pokemon/, pokemon/female/, pokemon/shiny/, pokemon/shiny/female/).
+// Loads sprite images bundled from Sprites/pokemon. Xcode's synchronized groups flatten all
+// loose resource files straight into Contents/Resources regardless of source folder nesting —
+// there's no "pokemon/" subdirectory in the built bundle, just uniquely-named flat files:
+// {id}.gif, {id}_f.gif, {id}_shiny.gif, {id}_f_shiny.gif.
 enum PokemonSprite {
+    // Decoding a multi-frame GIF isn't free, and image(for:)/image(species:...) get called on
+    // every body re-evaluation (tab switches, any picker change) — cache by filename so a given
+    // sprite is only ever read from disk and decoded once per app run.
+    private static let cache = NSCache<NSString, NSImage>()
+
     static func image(for info: PokemonInfo) -> NSImage? {
-        guard let species = GameData.species[info.species] else { return nil }
-        let female = info.gender == .female && species.hasFemaleSprite == true
+        guard let species = GameData.species[info.species] else {
+            log("PokemonSprite: no species entry for id \(info.species) (species.json has \(GameData.species.count) entries)")
+            return nil
+        }
+        return image(species: species, form: info.form, gender: info.gender, shiny: info.isShiny)
+    }
 
-        var components = ["pokemon"]
-        if info.isShiny { components.append("shiny") }
-        if female { components.append("female") }
-        components.append("\(fileNameStem(species: species, form: info.form)).gif")
+    static func image(species: PokemonSpecies, form: Int, gender: PokemonGender, shiny: Bool) -> NSImage? {
+        let female = gender == .female && species.hasFemaleSprite == true
 
-        guard let url = BundleResource.find(components) else { return nil }
-        return NSImage(contentsOf: url)
+        var filename = fileNameStem(species: species, form: form)
+        if female { filename += "_f" }
+        if shiny { filename += "_shiny" }
+        filename += ".gif"
+
+        let key = filename as NSString
+        if let cached = cache.object(forKey: key) {
+            return cached
+        }
+
+        guard let url = BundleResource.find(filename) else {
+            log("PokemonSprite: could not resolve \(filename) in bundle")
+            return nil
+        }
+        guard let image = NSImage(contentsOf: url) else {
+            log("PokemonSprite: found \(url.path) but NSImage failed to decode it")
+            return nil
+        }
+        cache.setObject(image, forKey: key)
+        return image
     }
 
     private static func fileNameStem(species: PokemonSpecies, form: Int) -> String {

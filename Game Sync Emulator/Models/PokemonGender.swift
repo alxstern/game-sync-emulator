@@ -12,4 +12,12 @@ enum PokemonGender: String, Codable, Hashable, CaseIterable {
     }
 
     var displayName: String { rawValue.capitalized }
+
+    var symbol: String? {
+        switch self {
+        case .male: "♂"
+        case .female: "♀"
+        case .genderless: nil
+        }
+    }
 }

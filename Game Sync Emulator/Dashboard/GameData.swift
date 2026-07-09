@@ -15,7 +15,7 @@ enum GameData {
         let isVersion2 = version?.isVersion2 ?? true
         return species.values
             .filter { $0.downloadable && (isVersion2 || $0.id <= 493) }
-            .sorted { $0.name < $1.name }
+            .sorted { $0.id < $1.id }
     }
 
     private static func loadMap<T: Decodable>(_ resource: String) -> [Int: T] {

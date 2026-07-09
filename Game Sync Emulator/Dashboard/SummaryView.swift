@@ -36,9 +36,21 @@ struct SummaryView: View {
                             .font(.callout)
                             .foregroundStyle(.secondary)
                         if info.heldItem != 0 {
-                            Label(GameData.itemName(info.heldItem), systemImage: "bag.fill")
-                                .font(.callout)
-                                .foregroundStyle(.secondary)
+                            HStack(spacing: 4) {
+                                if let icon = ItemSprite.image(for: info.heldItem) {
+                                    Image(nsImage: icon)
+                                        .resizable()
+                                        .frame(
+                                            width: icon.size.width * AnimatedImage.standardSpriteScale,
+                                            height: icon.size.height * AnimatedImage.standardSpriteScale
+                                        )
+                                } else {
+                                    Image(systemName: "bag.fill")
+                                }
+                                Text(GameData.itemName(info.heldItem))
+                            }
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
                         }
                     }
                     Spacer()
@@ -68,7 +80,7 @@ struct SummaryView: View {
     }
 }
 
-private func previewPlayer(species: Int, shiny: Bool, female: Bool) -> Player {
+private func previewPlayer(species: Int, shiny: Bool, female: Bool, heldItem: Int = 0) -> Player {
     var player = Player(gameSyncId: "ABCDEFGHIJ")
     // A shiny personality/IV combo isn't worth reproducing exactly for a preview —
     // PokemonInfo.isShiny is derived from these, so fake values that satisfy it are enough.
@@ -84,7 +96,7 @@ private func previewPlayer(species: Int, shiny: Bool, female: Bool) -> Player {
         level: 25,
         form: 0,
         ability: 9,
-        heldItem: 0
+        heldItem: heldItem
     )
     return player
 }
@@ -95,4 +107,8 @@ private func previewPlayer(species: Int, shiny: Bool, female: Bool) -> Player {
 
 #Preview("Shiny Female") {
     SummaryView(player: previewPlayer(species: 3, shiny: true, female: true)) // Venusaur
+}
+
+#Preview("Held Item") {
+    SummaryView(player: previewPlayer(species: 110, shiny: false, female: false, heldItem: 281)) // Weezing, Black Sludge
 }

@@ -1,5 +1,5 @@
-# Sprite/item assets (downloaded separately, baked into release builds locally)
-Game Sync Emulator/Sprites/
+# Sprite/item/DLC assets (downloaded separately, baked into release builds locally)
+Game Sync Emulator/Assets/
 .DS_Store
 
 # Xcode

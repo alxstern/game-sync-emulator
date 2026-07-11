@@ -20,7 +20,7 @@ struct ContentView: View {
                 .tabItem { Label("Console", systemImage: "terminal") }
                 .tag(Tab.console)
 
-            DashboardView(playerManager: AppServices.shared.playerManager)
+            DashboardView(playerManager: AppServices.shared.playerManager, dlcList: AppServices.shared.dlcList)
                 .tabItem { Label("Dashboard", systemImage: "gamecontroller") }
                 .tag(Tab.dashboard)
         }

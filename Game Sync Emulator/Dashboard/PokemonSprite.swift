@@ -1,6 +1,6 @@
 import AppKit
 
-// Loads sprite images bundled from Sprites/pokemon. Xcode's synchronized groups flatten all
+// Loads sprite images bundled from Assets/pokemon. Xcode's synchronized groups flatten all
 // loose resource files straight into Contents/Resources regardless of source folder nesting —
 // there's no "pokemon/" subdirectory in the built bundle, just uniquely-named flat files:
 // {id}.gif, {id}_f.gif, {id}_shiny.gif, {id}_f_shiny.gif.

@@ -1,6 +1,6 @@
 import AppKit
 
-// Loads item icons bundled from Sprites/items ({id}.png, sourced from Bulbapedia — see
+// Loads item icons bundled from Assets/items ({id}.png, sourced from Bulbapedia — see
 // Resources/NOTICE.md). Unlike Pokémon sprites, every icon is a uniform 24x24, so there's no
 // relative-scale concern here.
 enum ItemSprite {

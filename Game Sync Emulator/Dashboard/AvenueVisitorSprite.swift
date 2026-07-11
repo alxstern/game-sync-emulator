@@ -1,6 +1,6 @@
 import AppKit
 
-// Loads overworld trainer sprites bundled from Sprites/trainers, named {rawValue lowercased}.png
+// Loads overworld trainer sprites bundled from Assets/trainers, named {rawValue lowercased}.png
 // to match AvenueVisitorType directly (e.g. ACE_TRAINER_MALE -> ace_trainer_male.png).
 enum AvenueVisitorSprite {
     private static let cache = NSCache<NSString, NSImage>()

@@ -2,12 +2,15 @@ import SwiftUI
 
 struct DashboardContentView: View {
     let playerManager: PlayerManager
+    let dlcList: DlcList
     let player: Player
     let onLogOut: () -> Void
 
     @State private var encounterSlots: [EncounterSlot]
     @State private var itemSlots: [ItemSlot]
     @State private var avenueSlots: [AvenueVisitorSlot]
+    @State private var cgearSkin: String?
+    @State private var dexSkin: String?
     @State private var selectedSection: PanelSection? = .summary
     @State private var statusMessage: String?
 
@@ -16,6 +19,7 @@ struct DashboardContentView: View {
         case encounters = "Entree Forest"
         case items = "Dream Remnants"
         case avenue = "Join Avenue"
+        case customization = "Customization"
 
         var id: String { rawValue }
 
@@ -25,17 +29,21 @@ struct DashboardContentView: View {
             case .encounters: "leaf"
             case .items: "bag.fill"
             case .avenue: "storefront.fill"
+            case .customization: "paintpalette.fill"
             }
         }
     }
 
-    init(playerManager: PlayerManager, player: Player, onLogOut: @escaping () -> Void) {
+    init(playerManager: PlayerManager, dlcList: DlcList, player: Player, onLogOut: @escaping () -> Void) {
         self.playerManager = playerManager
+        self.dlcList = dlcList
         self.player = player
         self.onLogOut = onLogOut
         _encounterSlots = State(initialValue: Self.makeSlots(from: player))
         _itemSlots = State(initialValue: Self.makeItemSlots(from: player))
         _avenueSlots = State(initialValue: Self.makeAvenueSlots(from: player))
+        _cgearSkin = State(initialValue: player.cgearSkin)
+        _dexSkin = State(initialValue: player.dexSkin)
     }
 
     // Join Avenue only exists in Black 2 / White 2 — the server drops it entirely for BW1 players.
@@ -60,6 +68,8 @@ struct DashboardContentView: View {
                     ItemsEditorView(slots: $itemSlots)
                 case .avenue:
                     AvenueEditorView(slots: $avenueSlots)
+                case .customization:
+                    CustomizationView(dlcList: dlcList, gameVersion: player.gameVersion, cgearSkin: $cgearSkin, dexSkin: $dexSkin)
                 }
 
                 Divider()
@@ -110,6 +120,8 @@ struct DashboardContentView: View {
                 dreamerSpecies: dreamer.id
             )
         })
+        updated.cgearSkin = cgearSkin
+        updated.dexSkin = dexSkin
         updated.status = .wakeReady
 
         Task {

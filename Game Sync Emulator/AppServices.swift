@@ -27,7 +27,10 @@ final class AppServices: @unchecked Sendable {
         gameSpyServer = GameSpyServer()
         userManager = UserManager(dataDirectory: base.appendingPathComponent("users"))
         playerManager = PlayerManager(dataDirectory: base.appendingPathComponent("players"))
-        dlcList = DlcList(dataDirectory: base.appendingPathComponent("dlc"))
+
+        let dlcDirectory = base.appendingPathComponent("dlc")
+        DlcSeeder.seed(into: dlcDirectory)
+        dlcList = DlcList(dataDirectory: dlcDirectory)
         configuration = Configuration.default
     }
 

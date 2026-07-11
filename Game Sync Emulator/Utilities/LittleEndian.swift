@@ -71,6 +71,20 @@ struct LittleEndianReader {
     mutating func skip(_ count: Int) {
         offset += count
     }
+
+    mutating func readByte() -> UInt8 {
+        let v = data[offset]
+        offset += 1
+        return v
+    }
+
+    mutating func readBytes(_ count: Int) -> [UInt8] {
+        let v = Array(data[offset..<(offset + count)])
+        offset += count
+        return v
+    }
+
+    var bytesRemaining: Int { data.count - offset }
 }
 
 struct LittleEndianWriter {

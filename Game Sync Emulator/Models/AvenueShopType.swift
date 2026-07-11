@@ -1,4 +1,4 @@
-enum AvenueShopType: String, Codable {
+enum AvenueShopType: String, Codable, CaseIterable {
     case raffle  = "RAFFLE"
     case florist = "FLORIST"
     case salon   = "SALON"

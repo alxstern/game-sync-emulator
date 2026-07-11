@@ -1,4 +1,4 @@
-enum AvenueVisitorType: String, Codable {
+enum AvenueVisitorType: String, Codable, CaseIterable {
     case youngster        = "YOUNGSTER"
     case lass             = "LASS"
     case aceTrainerMale   = "ACE_TRAINER_MALE"

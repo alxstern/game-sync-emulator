@@ -51,7 +51,11 @@ final class DlcList: @unchecked Sendable {
         }
 
         entries = loaded
-        log("Loaded \(loaded.count) DLC file(s)")
+        let missingChecksumCount = loaded.filter { !$0.checksumEmbedded }.count
+        let suffix = missingChecksumCount > 0
+            ? " (\(missingChecksumCount) without an embedded checksum — appended automatically when served)"
+            : ""
+        log("Loaded \(loaded.count) DLC file(s)\(suffix)")
     }
 
     private static func load(file: URL, gameCode: String, type: String, index: Int) -> Dlc? {
@@ -76,7 +80,8 @@ final class DlcList: @unchecked Sendable {
                        index: index, projectedSize: bytes.count,
                        checksum: computedChecksum, checksumEmbedded: true)
         } else {
-            log("Warning: Checksum mismatch in DLC '\(name)' — checksum will be appended by server")
+            // No embedded checksum — expected for most bundled skin rips. DlsHandler appends
+            // a freshly computed one when serving the file; see the summary log in init above.
             let fullChecksum = CRC16.calc(bytes)
             return Dlc(path: file, name: name, gameCode: gameCode, type: type,
                        index: index, projectedSize: bytes.count + 2,

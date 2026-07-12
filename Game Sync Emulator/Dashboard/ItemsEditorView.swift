@@ -1,14 +1,15 @@
 import SwiftUI
 
 struct ItemSlot: Identifiable {
-    let id: Int
-    var item: ItemOption?
+    let id = UUID()
+    var item: ItemOption? = nil
     var quantity: Int = 1
 }
 
 struct ItemsEditorView: View {
     @Binding var slots: [ItemSlot]
 
+    private static let maxSlots = 20
     private let availableItems = GameData.allItems()
     private let columns = [GridItem(.adaptive(minimum: 260, maximum: 320), spacing: 10)]
 
@@ -25,10 +26,24 @@ struct ItemsEditorView: View {
             ScrollView {
                 LazyVGrid(columns: columns, spacing: 10) {
                     ForEach($slots) { slotBinding in
-                        ItemCell(slot: slotBinding, availableItems: availableItems)
+                        ItemCell(slot: slotBinding, availableItems: availableItems) {
+                            slots.removeAll { $0.id == slotBinding.id }
+                        }
                     }
                 }
                 .padding(12)
+            }
+
+            if slots.count < Self.maxSlots {
+                Divider()
+                Button {
+                    slots.append(ItemSlot())
+                } label: {
+                    Label("Add Item", systemImage: "plus.circle.fill")
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.accentColor)
+                .padding(10)
             }
         }
     }
@@ -37,6 +52,7 @@ struct ItemsEditorView: View {
 private struct ItemCell: View {
     @Binding var slot: ItemSlot
     let availableItems: [ItemOption]
+    let onRemove: () -> Void
 
     var body: some View {
         HStack(spacing: 8) {
@@ -55,6 +71,12 @@ private struct ItemCell: View {
             }
             .fixedSize()
             .disabled(slot.item == nil)
+
+            Button(role: .destructive, action: onRemove) {
+                Image(systemName: "trash")
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
         }
         .padding(8)
         .background(.quaternary.opacity(0.2), in: .rect(cornerRadius: 8))

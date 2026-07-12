@@ -363,7 +363,9 @@ struct PglHandler: HttpRequestHandler {
             return 1
         } else {
             user.setDlcOverride(nil, for: type)
-            return dlcList.index(gameCode: "IRAO", type: type, name: name ?? "none")
+            let index = dlcList.index(gameCode: "IRAO", type: type, name: name ?? "none")
+            log("PGL: dlcIndex type=\(type) name=\(name ?? "none") -> index=\(index)")
+            return index
         }
     }
 }

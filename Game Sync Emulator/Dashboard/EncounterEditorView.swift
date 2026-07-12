@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct EncounterSlot: Identifiable {
-    let id: Int
-    var species: PokemonSpecies?
+    let id = UUID()
+    var species: PokemonSpecies? = nil
     var gender: PokemonGender = .male
     var dreamAnimation: DreamAnimation = .lookAround
 }
@@ -11,6 +11,7 @@ struct EncounterEditorView: View {
     let gameVersion: GameVersion?
     @Binding var slots: [EncounterSlot]
 
+    private static let maxSlots = 10
     private var availableSpecies: [PokemonSpecies] { GameData.downloadableSpecies(for: gameVersion) }
 
     var body: some View {
@@ -25,10 +26,24 @@ struct EncounterEditorView: View {
 
             List {
                 ForEach($slots) { slotBinding in
-                    EncounterRow(slot: slotBinding, availableSpecies: availableSpecies)
+                    EncounterRow(slot: slotBinding, availableSpecies: availableSpecies) {
+                        slots.removeAll { $0.id == slotBinding.id }
+                    }
                 }
             }
             .listStyle(.inset)
+
+            if slots.count < Self.maxSlots {
+                Divider()
+                Button {
+                    slots.append(EncounterSlot())
+                } label: {
+                    Label("Add Encounter", systemImage: "plus.circle.fill")
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.accentColor)
+                .padding(10)
+            }
         }
     }
 }
@@ -36,6 +51,7 @@ struct EncounterEditorView: View {
 private struct EncounterRow: View {
     @Binding var slot: EncounterSlot
     let availableSpecies: [PokemonSpecies]
+    let onRemove: () -> Void
 
     private var genderOptions: [PokemonGender] {
         slot.species?.genders ?? []
@@ -77,6 +93,12 @@ private struct EncounterRow: View {
             .labelsHidden()
             .frame(minWidth: 110, idealWidth: 160, maxWidth: 200, alignment: .leading)
             .disabled(slot.species == nil)
+
+            Button(role: .destructive, action: onRemove) {
+                Image(systemName: "trash")
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
         }
         .padding(.vertical, 3)
     }

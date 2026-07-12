@@ -1,33 +1,21 @@
 import SwiftUI
 
 struct AvenueVisitorSlot: Identifiable {
-    let id: Int
-    var type: AvenueVisitorType?
+    let id = UUID()
+    var type: AvenueVisitorType? = nil
     var name: String = ""
     var shopType: AvenueShopType = .raffle
     var gameVersion: GameVersion = .black2English
-    var country: Country?
-    var region: Region?
+    var country: Country? = nil
+    var region: Region? = nil
     var phrase: Int = 0
-    var dreamerSpecies: PokemonSpecies?
-}
-
-// Column widths shared between the header and each row so everything lines up.
-private enum AvenueColumn {
-    static let icon: CGFloat = 32
-    static let type: CGFloat = 150
-    static let name: CGFloat = 80
-    static let shop: CGFloat = 110
-    static let game: CGFloat = 150
-    static let country: CGFloat = 150
-    static let region: CGFloat = 130
-    static let phrase: CGFloat = 90
-    static let species: CGFloat = 140
+    var dreamerSpecies: PokemonSpecies? = nil
 }
 
 struct AvenueEditorView: View {
     @Binding var slots: [AvenueVisitorSlot]
 
+    private static let maxSlots = 12
     private let availableSpecies = GameData.allSpecies()
     private let availableCountries = GameData.allCountries()
 
@@ -41,36 +29,48 @@ struct AvenueEditorView: View {
 
             Divider()
 
-            ScrollView([.horizontal, .vertical]) {
-                VStack(alignment: .leading, spacing: 6) {
-                    AvenueHeaderRow()
-
+            // Vertical-only scrolling — each row wraps its fields onto a second line instead of
+            // extending horizontally, so the section never needs to scroll sideways.
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 8) {
                     ForEach($slots) { slotBinding in
-                        AvenueVisitorRow(slot: slotBinding, availableSpecies: availableSpecies, availableCountries: availableCountries)
-                        Divider()
+                        AvenueVisitorRow(slot: slotBinding, availableSpecies: availableSpecies, availableCountries: availableCountries) {
+                            slots.removeAll { $0.id == slotBinding.id }
+                        }
                     }
                 }
                 .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            if slots.count < Self.maxSlots {
+                Divider()
+                Button {
+                    slots.append(AvenueVisitorSlot())
+                } label: {
+                    Label("Add Visitor", systemImage: "plus.circle.fill")
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.accentColor)
+                .padding(10)
             }
         }
     }
 }
 
-private struct AvenueHeaderRow: View {
+// Small caption above a control, since the compact custom pickers (LazyOptionPicker,
+// CountrySearchPicker, SpeciesSearchPicker) don't show a title the way a native Picker does.
+private struct LabeledField<Content: View>: View {
+    let label: String
+    @ViewBuilder var content: Content
+
     var body: some View {
-        HStack(spacing: 10) {
-            Spacer().frame(width: AvenueColumn.icon)
-            Text("Type").frame(width: AvenueColumn.type, alignment: .leading)
-            Text("Name").frame(width: AvenueColumn.name, alignment: .leading)
-            Text("Shop").frame(width: AvenueColumn.shop, alignment: .leading)
-            Text("Game").frame(width: AvenueColumn.game, alignment: .leading)
-            Text("Country").frame(width: AvenueColumn.country, alignment: .leading)
-            Text("Region").frame(width: AvenueColumn.region, alignment: .leading)
-            Text("Phrase").frame(width: AvenueColumn.phrase, alignment: .leading)
-            Text("Pokémon").frame(width: AvenueColumn.species, alignment: .leading)
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            content
         }
-        .font(.caption.bold())
-        .foregroundStyle(.secondary)
     }
 }
 
@@ -78,6 +78,7 @@ private struct AvenueVisitorRow: View {
     @Binding var slot: AvenueVisitorSlot
     let availableSpecies: [PokemonSpecies]
     let availableCountries: [Country]
+    let onRemove: () -> Void
 
     private var isJapanese: Bool { slot.gameVersion.languageCode == 1 }
 
@@ -88,82 +89,106 @@ private struct AvenueVisitorRow: View {
 
     private var hasSecondaryFields: Bool { slot.type != nil }
 
+    private static let typeOptions: [AvenueVisitorType?] = [nil] + AvenueVisitorType.allCases.map { $0 as AvenueVisitorType? }
+
     var body: some View {
-        HStack(spacing: 10) {
-            iconView
-                .frame(width: AvenueColumn.icon)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                iconView
+                    .frame(width: 28)
 
-            Picker("", selection: $slot.type) {
-                Text("—").tag(AvenueVisitorType?.none)
-                ForEach(AvenueVisitorType.allCases, id: \.self) { type in
-                    Text(type.displayName).tag(AvenueVisitorType?.some(type))
-                }
-            }
-            .labelsHidden()
-            .frame(width: AvenueColumn.type, alignment: .leading)
-
-            TextField("Name", text: $slot.name)
-                .textFieldStyle(.roundedBorder)
-                .frame(width: AvenueColumn.name)
-                .disabled(!hasSecondaryFields)
-                .onChange(of: slot.name) { _, newValue in
-                    if newValue.count > 7 { slot.name = String(newValue.prefix(7)) }
+                LabeledField(label: "Type") {
+                    LazyOptionPicker(selection: $slot.type, options: Self.typeOptions) { $0?.displayName ?? "—" }
+                        .frame(width: 150, alignment: .leading)
                 }
 
-            Picker("", selection: $slot.shopType) {
-                ForEach(AvenueShopType.allCases, id: \.self) { shop in
-                    Text(shop.displayName).tag(shop)
+                LabeledField(label: "Name") {
+                    TextField("Name", text: $slot.name)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 90)
+                        .disabled(!hasSecondaryFields)
+                        .onChange(of: slot.name) { _, newValue in
+                            if newValue.count > 7 { slot.name = String(newValue.prefix(7)) }
+                        }
                 }
-            }
-            .labelsHidden()
-            .frame(width: AvenueColumn.shop, alignment: .leading)
-            .disabled(!hasSecondaryFields)
 
-            Picker("", selection: $slot.gameVersion) {
-                ForEach(GameVersion.allCases, id: \.self) { version in
-                    Text(version.displayName).tag(version)
+                LabeledField(label: "Shop") {
+                    Picker("", selection: $slot.shopType) {
+                        ForEach(AvenueShopType.allCases, id: \.self) { shop in
+                            Text(shop.displayName).tag(shop)
+                        }
+                    }
+                    .labelsHidden()
+                    .frame(width: 110, alignment: .leading)
+                    .disabled(!hasSecondaryFields)
                 }
-            }
-            .labelsHidden()
-            .frame(width: AvenueColumn.game, alignment: .leading)
-            .disabled(!hasSecondaryFields)
-            .onChange(of: slot.gameVersion) { _, _ in
-                if let country = slot.country, !countryOptions.contains(country) {
-                    slot.country = nil
-                    slot.region = nil
+
+                Spacer(minLength: 0)
+
+                Button(role: .destructive, action: onRemove) {
+                    Image(systemName: "trash")
                 }
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
             }
 
-            CountrySearchPicker(selection: $slot.country, options: countryOptions)
-                .frame(width: AvenueColumn.country, alignment: .leading)
-                .disabled(!hasSecondaryFields)
-                .onChange(of: slot.country) { _, _ in
-                    slot.region = nil
+            HStack(spacing: 10) {
+                // Aligns the second line under the fields, past the icon column.
+                Spacer().frame(width: 28)
+
+                LabeledField(label: "Game") {
+                    LazyOptionPicker(selection: $slot.gameVersion, options: GameVersion.allCases) { $0.displayName }
+                        .frame(width: 150, alignment: .leading)
+                        .disabled(!hasSecondaryFields)
+                        .onChange(of: slot.gameVersion) { _, _ in
+                            if let country = slot.country, !countryOptions.contains(country) {
+                                slot.country = nil
+                                slot.region = nil
+                            }
+                        }
                 }
 
-            Picker("", selection: $slot.region) {
-                Text("—").tag(Region?.none)
-                ForEach(slot.country?.regions ?? [], id: \.self) { region in
-                    Text(region.name).tag(Region?.some(region))
+                LabeledField(label: "Country") {
+                    CountrySearchPicker(selection: $slot.country, options: countryOptions)
+                        .frame(width: 150, alignment: .leading)
+                        .disabled(!hasSecondaryFields)
+                        .onChange(of: slot.country) { _, _ in
+                            slot.region = nil
+                        }
+                }
+
+                LabeledField(label: "Region") {
+                    Picker("", selection: $slot.region) {
+                        Text("—").tag(Region?.none)
+                        ForEach(slot.country?.regions ?? [], id: \.self) { region in
+                            Text(region.name).tag(Region?.some(region))
+                        }
+                    }
+                    .labelsHidden()
+                    .frame(width: 130, alignment: .leading)
+                    .disabled(!hasSecondaryFields || !(slot.country?.hasRegions ?? false))
+                }
+
+                LabeledField(label: "Phrase") {
+                    Picker("", selection: $slot.phrase) {
+                        ForEach(0..<8) { i in
+                            Text("Phrase \(i + 1)").tag(i)
+                        }
+                    }
+                    .labelsHidden()
+                    .frame(width: 90, alignment: .leading)
+                    .disabled(!hasSecondaryFields)
+                }
+
+                LabeledField(label: "Pokémon") {
+                    SpeciesSearchPicker(selection: $slot.dreamerSpecies, options: availableSpecies)
+                        .frame(width: 140, alignment: .leading)
+                        .disabled(!hasSecondaryFields)
                 }
             }
-            .labelsHidden()
-            .frame(width: AvenueColumn.region, alignment: .leading)
-            .disabled(!hasSecondaryFields || !(slot.country?.hasRegions ?? false))
-
-            Picker("", selection: $slot.phrase) {
-                ForEach(0..<8) { i in
-                    Text("Phrase \(i + 1)").tag(i)
-                }
-            }
-            .labelsHidden()
-            .frame(width: AvenueColumn.phrase, alignment: .leading)
-            .disabled(!hasSecondaryFields)
-
-            SpeciesSearchPicker(selection: $slot.dreamerSpecies, options: availableSpecies)
-                .frame(width: AvenueColumn.species, alignment: .leading)
-                .disabled(!hasSecondaryFields)
         }
+        .padding(10)
+        .background(.quaternary.opacity(0.2), in: .rect(cornerRadius: 8))
     }
 
     @ViewBuilder

@@ -14,27 +14,28 @@ enum GameData {
     // game version can actually receive (Unova species are B2W2-exclusive).
     static func downloadableSpecies(for version: GameVersion?) -> [PokemonSpecies] {
         let isVersion2 = version?.isVersion2 ?? true
-        return species.values
-            .filter { $0.downloadable && (isVersion2 || $0.id <= 493) }
-            .sorted { $0.id < $1.id }
+        return allSpeciesList.filter { $0.downloadable && (isVersion2 || $0.id <= 493) }
     }
 
-    static func allItems() -> [ItemOption] {
-        items.map { ItemOption(id: $0.key, name: $0.value) }
-            .sorted { $0.id < $1.id }
-    }
+    static func allItems() -> [ItemOption] { allItemsList }
 
     static func country(_ id: Int) -> Country? { countries[id] }
 
-    static func allCountries() -> [Country] {
-        countries.values.sorted { $0.name < $1.name }
-    }
+    static func allCountries() -> [Country] { allCountriesList }
 
     // Unfiltered, unlike downloadableSpecies(for:) — used where a species is just cosmetic
     // flavor (e.g. the Pokémon a Join Avenue visitor is dreaming of).
-    static func allSpecies() -> [PokemonSpecies] {
-        species.values.sorted { $0.id < $1.id }
-    }
+    static func allSpecies() -> [PokemonSpecies] { allSpeciesList }
+
+    // Sorted once and reused. These view structs (AvenueEditorView, ItemsEditorView, etc.)
+    // recompute their `let` properties on every reconstruction, which SwiftUI does on every
+    // keystroke/picker change while they're on screen — re-sorting 649 species or 130
+    // countries per keystroke was the main cause of Join Avenue feeling sluggish.
+    private static let allSpeciesList: [PokemonSpecies] = species.values.sorted { $0.id < $1.id }
+    private static let allCountriesList: [Country] = countries.values.sorted { $0.name < $1.name }
+    private static let allItemsList: [ItemOption] = items
+        .map { ItemOption(id: $0.key, name: $0.value) }
+        .sorted { $0.id < $1.id }
 
     private static func loadMap<T: Decodable>(_ resource: String) -> [Int: T] {
         guard let url = BundleResource.find("\(resource).json"),

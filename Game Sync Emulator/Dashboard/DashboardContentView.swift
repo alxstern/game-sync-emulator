@@ -135,38 +135,31 @@ struct DashboardContentView: View {
     }
 
     private static func makeSlots(from player: Player) -> [EncounterSlot] {
-        var slots = (0..<10).map { EncounterSlot(id: $0) }
-        for (index, encounter) in player.encounters.enumerated() where index < 10 {
-            slots[index].species = GameData.species[encounter.species]
-            slots[index].gender = encounter.gender
-            slots[index].dreamAnimation = encounter.animation
+        player.encounters.prefix(10).map { encounter in
+            EncounterSlot(species: GameData.species[encounter.species], gender: encounter.gender, dreamAnimation: encounter.animation)
         }
-        return slots
     }
 
     private static func makeItemSlots(from player: Player) -> [ItemSlot] {
         let allItems = Dictionary(uniqueKeysWithValues: GameData.allItems().map { ($0.id, $0) })
-        var slots = (0..<20).map { ItemSlot(id: $0) }
-        for (index, item) in player.items.enumerated() where index < 20 {
-            slots[index].item = allItems[item.id]
-            slots[index].quantity = item.quantity
+        return player.items.prefix(20).map { item in
+            ItemSlot(item: allItems[item.id], quantity: item.quantity)
         }
-        return slots
     }
 
     private static func makeAvenueSlots(from player: Player) -> [AvenueVisitorSlot] {
-        var slots = (0..<12).map { AvenueVisitorSlot(id: $0) }
-        for (index, visitor) in player.avenueVisitors.enumerated() where index < 12 {
+        player.avenueVisitors.prefix(12).map { visitor in
             let country = GameData.country(visitor.countryCode)
-            slots[index].type = visitor.type
-            slots[index].name = visitor.name
-            slots[index].shopType = visitor.shopType
-            slots[index].gameVersion = visitor.gameVersion
-            slots[index].country = country
-            slots[index].region = country?.regions?.first { $0.id == visitor.stateProvinceCode }
-            slots[index].phrase = visitor.personality
-            slots[index].dreamerSpecies = GameData.species[visitor.dreamerSpecies]
+            return AvenueVisitorSlot(
+                type: visitor.type,
+                name: visitor.name,
+                shopType: visitor.shopType,
+                gameVersion: visitor.gameVersion,
+                country: country,
+                region: country?.regions?.first { $0.id == visitor.stateProvinceCode },
+                phrase: visitor.personality,
+                dreamerSpecies: GameData.species[visitor.dreamerSpecies]
+            )
         }
-        return slots
     }
 }

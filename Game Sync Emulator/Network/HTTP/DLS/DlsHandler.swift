@@ -28,7 +28,7 @@ struct DlsHandler: HttpRequestHandler {
         let gameCode = normalizedGameCode(dlsRequest.dlcGameCode)
         let type     = normalizedDlcType(dlsRequest.dlcType)
 
-        log("DLS: action=\(dlsRequest.action) gameCode=\(gameCode) type=\(type)")
+        log("DLS: action=\(dlsRequest.action) gameCode=\(gameCode) (raw=\(dlsRequest.dlcGameCode)) type=\(type) (raw=\(dlsRequest.dlcType)) index=\(dlsRequest.dlcIndex) offset=\(dlsRequest.offset) num=\(dlsRequest.num) name=\(dlsRequest.dlcName ?? "nil") allFields=\(dlsRequest.rawFields)")
 
         switch dlsRequest.action {
         case "list":     return handleList(dlsRequest, user: user, gameCode: gameCode, type: type)
@@ -47,11 +47,16 @@ struct DlsHandler: HttpRequestHandler {
 
         if let override = user.dlcOverride(for: type) {
             dlcs = [override]
+            log("DLS: list using per-user override — \(override.name)")
         } else {
             dlcs = dlcList.dlcs(gameCode: gameCode, type: type, index: request.dlcIndex)
+            let allOfType = dlcList.dlcs(gameCode: gameCode, type: type)
+            log("DLS: list filter gameCode=\(gameCode) type=\(type) index=\(request.dlcIndex) -> \(dlcs.count) match(es): \(dlcs.map { "\($0.name)#\($0.index)" }); \(allOfType.count) total entries of this type available")
         }
 
-        let body = Data(dlcList.listString(for: dlcs).utf8)
+        let listString = dlcList.listString(for: dlcs)
+        let body = Data(listString.utf8)
+        log("DLS: list response \(body.count) bytes: \(listString.replacingOccurrences(of: "\r\n", with: " | "))")
         return .ok(body)
     }
 
@@ -62,9 +67,14 @@ struct DlsHandler: HttpRequestHandler {
 
         if let override = user.dlcOverride(for: type) {
             dlc = override
+            log("DLS: contents using per-user override — \(override.name)")
         } else {
-            guard let name = request.dlcName else { return .notFound() }
+            guard let name = request.dlcName else {
+                log("DLS: contents request missing 'contents' field")
+                return .notFound()
+            }
             dlc = dlcList.dlc(gameCode: gameCode, type: type, name: name)
+            log("DLS: contents lookup gameCode=\(gameCode) type=\(type) name=\(name) -> \(dlc == nil ? "not found" : "found")")
         }
 
         guard let dlc else { return .notFound() }
@@ -79,6 +89,8 @@ struct DlsHandler: HttpRequestHandler {
             fileData.append(UInt8(checksum & 0xFF))
             fileData.append(UInt8(checksum >> 8))
         }
+
+        log("DLS: contents response \(fileData.count) bytes for \(dlc.name)")
 
         return .ok(fileData)
     }

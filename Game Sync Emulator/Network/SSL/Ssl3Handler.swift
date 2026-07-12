@@ -410,6 +410,11 @@ final class Ssl3Handler: ChannelInboundHandler, ChannelOutboundHandler, @uncheck
 
     // MARK: - Outbound path (encrypt HTTP responses into SSL records)
 
+    // SSL3/TLS application data records are capped at 2^14 (16384) bytes of plaintext
+    // (RFC 6101 §6.2.1) — a conforming client rejects a larger record, so responses bigger
+    // than that (e.g. the ~25KB Pokédex skin DLC) must be split across multiple records.
+    private static let maxRecordSize = 16384
+
     func write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
         guard state == .established else {
             promise?.succeed()
@@ -419,12 +424,14 @@ final class Ssl3Handler: ChannelInboundHandler, ChannelOutboundHandler, @uncheck
         guard let bytes = buf.readBytes(length: buf.readableBytes), !bytes.isEmpty else {
             promise?.succeed(); return
         }
-        let mac      = Ssl3Crypto.mac(key: serverMAC, seqNum: writeSeqNum, contentType: 23, data: bytes, useSHA: useSHA)
-        writeSeqNum += 1
-        let encrypted = serverRC4.process(bytes + mac)
-        let record    = makeRecord(type: 23, data: encrypted)
-        var out = context.channel.allocator.buffer(capacity: record.count)
-        out.writeBytes(record)
+        var out = context.channel.allocator.buffer(capacity: bytes.count + 32)
+        for start in stride(from: 0, to: bytes.count, by: Self.maxRecordSize) {
+            let chunk     = Array(bytes[start..<min(start + Self.maxRecordSize, bytes.count)])
+            let mac       = Ssl3Crypto.mac(key: serverMAC, seqNum: writeSeqNum, contentType: 23, data: chunk, useSHA: useSHA)
+            writeSeqNum  += 1
+            let encrypted = serverRC4.process(chunk + mac)
+            out.writeBytes(makeRecord(type: 23, data: encrypted))
+        }
         context.write(wrapOutboundOut(out), promise: promise)
     }
 

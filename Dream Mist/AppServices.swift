@@ -22,7 +22,7 @@ final class AppServices: @unchecked Sendable {
             .appendingPathComponent("Entralinked", isDirectory: true)
         try? FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
 
-        dnsServer = DnsServer(hostIP: NetworkUtility.localIPAddress(), port: 5300)
+        dnsServer = DnsServer(hostIP: NetworkUtility.localIPAddress(), port: 53)
         httpServer = HttpServer()
         gameSpyServer = GameSpyServer()
         userManager = UserManager(dataDirectory: base.appendingPathComponent("users"))
@@ -42,7 +42,6 @@ final class AppServices: @unchecked Sendable {
         lock.unlock()
         guard !alreadyStarted else { return }
 
-        PortForwardingManager.setup()
         do {
             try await dnsServer.start()
         } catch {
@@ -63,20 +62,14 @@ final class AppServices: @unchecked Sendable {
         } catch {
             log("Failed to start GameSpy server: \(error)")
         }
+    }
 
-        // Forward new relay log lines into the debug view so per-query relay events are visible.
-        Task.detached {
-            let initial = (try? String(contentsOfFile: "/tmp/entralinked_relay.log"))
-                .map { $0.components(separatedBy: "\n").filter { !$0.isEmpty }.count } ?? 0
-            var knownLines = initial
-            while true {
-                try? await Task.sleep(nanoseconds: 1_500_000_000)
-                guard let content = try? String(contentsOfFile: "/tmp/entralinked_relay.log") else { continue }
-                let lines = content.components(separatedBy: "\n").filter { !$0.isEmpty }
-                guard lines.count > knownLines else { continue }
-                for line in lines[knownLines...] { log("relay: \(line)") }
-                knownLines = lines.count
-            }
-        }
+    // Stops every server so the ports are actually free the moment the app quits, instead of
+    // only being freed whenever the OS gets around to reclaiming them from a dead process.
+    // Called from AppDelegate before it lets the app finish terminating.
+    func stopAll() async {
+        dnsServer.stop()
+        await httpServer.stop()
+        gameSpyServer.stop()
     }
 }

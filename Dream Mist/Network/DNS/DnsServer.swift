@@ -6,7 +6,7 @@ actor DnsServer {
     let hostIP: String
     let port: UInt16
 
-    init(hostIP: String, port: UInt16 = 5300) {
+    init(hostIP: String, port: UInt16 = 53) {
         self.hostIP = hostIP
         self.port = port
     }
@@ -16,7 +16,14 @@ actor DnsServer {
         params.allowLocalEndpointReuse = true
 
         let nwPort = NWEndpoint.Port(rawValue: port)!
-        let listener = try NWListener(using: params, on: nwPort)
+
+        // Bind to this machine's specific interface address rather than the wildcard (0.0.0.0)
+        // so this can coexist with mDNSResponder, which already holds 0.0.0.0:53 on macOS.
+        if let ip = IPv4Address(hostIP) {
+            params.requiredLocalEndpoint = NWEndpoint.hostPort(host: .ipv4(ip), port: nwPort)
+        }
+
+        let listener = try NWListener(using: params)
         let hostIP = self.hostIP
         let port = self.port
 

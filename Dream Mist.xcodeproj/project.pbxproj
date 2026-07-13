@@ -23,19 +23,19 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		FAC6874E2FE5CDE00092788C /* Game Sync Emulator.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Game Sync Emulator.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		FAC6876B2FE5DA3B0092788C /* Game Sync EmulatorTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Game Sync EmulatorTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		FAC6874E2FE5CDE00092788C /* Dream Mist.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Dream Mist.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		FAC6876B2FE5DA3B0092788C /* Dream MistTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Dream MistTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		FAC687502FE5CDE00092788C /* Game Sync Emulator */ = {
+		FAC687502FE5CDE00092788C /* Dream Mist */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "Game Sync Emulator";
+			path = "Dream Mist";
 			sourceTree = "<group>";
 		};
-		FAC6876C2FE5DA3B0092788C /* Game Sync EmulatorTests */ = {
+		FAC6876C2FE5DA3B0092788C /* Tests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "Game Sync EmulatorTests";
+			path = Tests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -64,8 +64,8 @@
 		FAC687452FE5CDE00092788C = {
 			isa = PBXGroup;
 			children = (
-				FAC687502FE5CDE00092788C /* Game Sync Emulator */,
-				FAC6876C2FE5DA3B0092788C /* Game Sync EmulatorTests */,
+				FAC687502FE5CDE00092788C /* Dream Mist */,
+				FAC6876C2FE5DA3B0092788C /* Tests */,
 				FAC6874F2FE5CDE00092788C /* Products */,
 			);
 			sourceTree = "<group>";
@@ -73,8 +73,8 @@
 		FAC6874F2FE5CDE00092788C /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				FAC6874E2FE5CDE00092788C /* Game Sync Emulator.app */,
-				FAC6876B2FE5DA3B0092788C /* Game Sync EmulatorTests.xctest */,
+				FAC6874E2FE5CDE00092788C /* Dream Mist.app */,
+				FAC6876B2FE5DA3B0092788C /* Dream MistTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -82,9 +82,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		FAC6874D2FE5CDE00092788C /* Game Sync Emulator */ = {
+		FAC6874D2FE5CDE00092788C /* Dream Mist */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = FAC687592FE5CDE10092788C /* Build configuration list for PBXNativeTarget "Game Sync Emulator" */;
+			buildConfigurationList = FAC687592FE5CDE10092788C /* Build configuration list for PBXNativeTarget "Dream Mist" */;
 			buildPhases = (
 				FAC6874A2FE5CDE00092788C /* Sources */,
 				FAC6874B2FE5CDE00092788C /* Frameworks */,
@@ -95,21 +95,21 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				FAC687502FE5CDE00092788C /* Game Sync Emulator */,
+				FAC687502FE5CDE00092788C /* Dream Mist */,
 			);
-			name = "Game Sync Emulator";
+			name = "Dream Mist";
 			packageProductDependencies = (
 				FAC689882FEE0FEB0092788C /* NIO */,
 				FAC6898A2FEE0FEB0092788C /* NIOHTTP1 */,
 				FAC6898D2FEE101E0092788C /* NIOSSL */,
 			);
 			productName = "Game Sync Emulator";
-			productReference = FAC6874E2FE5CDE00092788C /* Game Sync Emulator.app */;
+			productReference = FAC6874E2FE5CDE00092788C /* Dream Mist.app */;
 			productType = "com.apple.product-type.application";
 		};
-		FAC6876A2FE5DA3B0092788C /* Game Sync EmulatorTests */ = {
+		FAC6876A2FE5DA3B0092788C /* Dream MistTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = FAC687712FE5DA3B0092788C /* Build configuration list for PBXNativeTarget "Game Sync EmulatorTests" */;
+			buildConfigurationList = FAC687712FE5DA3B0092788C /* Build configuration list for PBXNativeTarget "Dream MistTests" */;
 			buildPhases = (
 				FAC687672FE5DA3B0092788C /* Sources */,
 				FAC687682FE5DA3B0092788C /* Frameworks */,
@@ -121,13 +121,13 @@
 				FAC687702FE5DA3B0092788C /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				FAC6876C2FE5DA3B0092788C /* Game Sync EmulatorTests */,
+				FAC6876C2FE5DA3B0092788C /* Tests */,
 			);
-			name = "Game Sync EmulatorTests";
+			name = "Dream MistTests";
 			packageProductDependencies = (
 			);
 			productName = "Game Sync EmulatorTests";
-			productReference = FAC6876B2FE5DA3B0092788C /* Game Sync EmulatorTests.xctest */;
+			productReference = FAC6876B2FE5DA3B0092788C /* Dream MistTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
@@ -149,7 +149,7 @@
 					};
 				};
 			};
-			buildConfigurationList = FAC687492FE5CDE00092788C /* Build configuration list for PBXProject "Game Sync Emulator" */;
+			buildConfigurationList = FAC687492FE5CDE00092788C /* Build configuration list for PBXProject "Dream Mist" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -167,8 +167,8 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				FAC6874D2FE5CDE00092788C /* Game Sync Emulator */,
-				FAC6876A2FE5DA3B0092788C /* Game Sync EmulatorTests */,
+				FAC6874D2FE5CDE00092788C /* Dream Mist */,
+				FAC6876A2FE5DA3B0092788C /* Dream MistTests */,
 			);
 		};
 /* End PBXProject section */
@@ -210,7 +210,7 @@
 /* Begin PBXTargetDependency section */
 		FAC687702FE5DA3B0092788C /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = FAC6874D2FE5CDE00092788C /* Game Sync Emulator */;
+			target = FAC6874D2FE5CDE00092788C /* Dream Mist */;
 			targetProxy = FAC6876F2FE5DA3B0092788C /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -356,8 +356,8 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "io.alexstern.Game-Sync-Emulator";
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = "io.alexstern.Dream-Mist";
+				PRODUCT_NAME = "Dream Mist";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -386,8 +386,8 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "io.alexstern.Game-Sync-Emulator";
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = "io.alexstern.Dream-Mist";
+				PRODUCT_NAME = "Dream Mist";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -407,14 +407,14 @@
 				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "io.alexstern.Game-Sync-EmulatorTests";
+				PRODUCT_BUNDLE_IDENTIFIER = "io.alexstern.Dream-MistTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Game Sync Emulator.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Game Sync Emulator";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Dream Mist.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Dream Mist";
 			};
 			name = Debug;
 		};
@@ -427,21 +427,21 @@
 				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "io.alexstern.Game-Sync-EmulatorTests";
+				PRODUCT_BUNDLE_IDENTIFIER = "io.alexstern.Dream-MistTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Game Sync Emulator.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Game Sync Emulator";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Dream Mist.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Dream Mist";
 			};
 			name = Release;
 		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		FAC687492FE5CDE00092788C /* Build configuration list for PBXProject "Game Sync Emulator" */ = {
+		FAC687492FE5CDE00092788C /* Build configuration list for PBXProject "Dream Mist" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				FAC687572FE5CDE10092788C /* Debug */,
@@ -450,7 +450,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		FAC687592FE5CDE10092788C /* Build configuration list for PBXNativeTarget "Game Sync Emulator" */ = {
+		FAC687592FE5CDE10092788C /* Build configuration list for PBXNativeTarget "Dream Mist" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				FAC6875A2FE5CDE10092788C /* Debug */,
@@ -459,7 +459,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		FAC687712FE5DA3B0092788C /* Build configuration list for PBXNativeTarget "Game Sync EmulatorTests" */ = {
+		FAC687712FE5DA3B0092788C /* Build configuration list for PBXNativeTarget "Dream MistTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				FAC687722FE5DA3B0092788C /* Debug */,

@@ -1,6 +1,6 @@
 //
 //  ContentView.swift
-//  Game Sync Emulator
+//  Dream Mist
 //
 //  Created by Alex Stern on 6/19/26.
 //

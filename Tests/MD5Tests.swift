@@ -1,5 +1,5 @@
 import Testing
-@testable import Game_Sync_Emulator
+@testable import Dream_Mist
 
 @Suite("MD5")
 struct MD5Tests {

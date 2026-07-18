@@ -19,7 +19,7 @@ final class AppServices: @unchecked Sendable {
 
     private init() {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Entralinked", isDirectory: true)
+            .appendingPathComponent("Dream Mist", isDirectory: true)
         try? FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
 
         dnsServer = DnsServer(hostIP: NetworkUtility.localIPAddress(), port: 53)

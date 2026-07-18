@@ -10,6 +10,11 @@ enum GSIDUtility {
 
     nonisolated static let chartable = Array("ABCDEFGHJKLMNPQRSTUVWXYZ23456789")
 
+    // Uppercases, drops any character outside chartable, and caps at 10 — for live-formatting input fields.
+    nonisolated static func sanitizeInput(_ input: String) -> String {
+        String(input.uppercased().filter(chartable.contains).prefix(10))
+    }
+
     nonisolated static func stringify(_ pid: Int32) -> String {
         let checksum = Int64(CRC16.calc(pid))
         let ugsid = Int64(pid) | (checksum << 32)

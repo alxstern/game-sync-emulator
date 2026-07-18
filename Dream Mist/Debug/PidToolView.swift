@@ -20,12 +20,18 @@ struct PidToolView: View {
                         .gridColumnAlignment(.trailing)
                     TextField("XXXX-XXXX-XXXX-XXXX", text: $wfcIdInput)
                         .frame(width: 240)
+                        .onChange(of: wfcIdInput) {
+                            wfcIdInput = Self.formatGrouped(wfcIdInput, maxDigits: 16)
+                        }
                 }
                 GridRow {
                     Text("Friend Code")
                         .gridColumnAlignment(.trailing)
                     TextField("XXXX-XXXX-XXXX", text: $friendCodeInput)
                         .frame(width: 240)
+                        .onChange(of: friendCodeInput) {
+                            friendCodeInput = Self.formatGrouped(friendCodeInput, maxDigits: 12)
+                        }
                 }
             }
 
@@ -45,6 +51,16 @@ struct PidToolView: View {
                 if alertMessage.hasPrefix("Done") { dismiss() }
             }
         }
+    }
+
+    // Strips non-digits, truncates, then re-groups in 4s ("1234567890123456" → "1234-5678-9012-3456").
+    private static func formatGrouped(_ input: String, maxDigits: Int) -> String {
+        let digits = String(input.filter(\.isNumber).prefix(maxDigits))
+        return stride(from: 0, to: digits.count, by: 4).map { i -> String in
+            let start = digits.index(digits.startIndex, offsetBy: i)
+            let end   = digits.index(start, offsetBy: 4, limitedBy: digits.endIndex) ?? digits.endIndex
+            return String(digits[start..<end])
+        }.joined(separator: "-")
     }
 
     private func update() {

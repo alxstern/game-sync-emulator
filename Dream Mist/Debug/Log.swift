@@ -1,16 +1,14 @@
 import Foundation
 
-// Drop-in replacement for print() — also routes to LogStore for the in-app debug view
-// and to a file, since LogStore only keeps the last 500 entries.
+// Drop-in replacement for print() — also routes to a file for later diagnosis. There's no
+// in-app viewer; this app is meant to be usable by non-technical users, who get plain-language
+// error messages instead. The file is there for bug reports / your own debugging.
 func log(_ message: String) {
     print(message)
-    DispatchQueue.main.async {
-        LogStore.shared.append(message)
-    }
     FileLog.shared.append(message)
 }
 
-// Appends every log line to ~/Library/Application Support/Entralinked/debug.log.
+// Appends every log line to ~/Library/Application Support/Dream Mist/debug.log.
 final class FileLog: @unchecked Sendable {
     static let shared = FileLog()
 
@@ -24,7 +22,7 @@ final class FileLog: @unchecked Sendable {
 
     private init() {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Entralinked", isDirectory: true)
+            .appendingPathComponent("Dream Mist", isDirectory: true)
         try? FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
         let url = base.appendingPathComponent("debug.log")
         if !FileManager.default.fileExists(atPath: url.path) {

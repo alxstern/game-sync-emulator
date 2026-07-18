@@ -6,6 +6,9 @@ struct DashboardLoginView: View {
 
     @State private var gameSyncId = ""
     @State private var errorMessage: String?
+    @State private var showingPidTool = false
+
+    private var localIP: String { NetworkUtility.localIPAddress() }
 
     var body: some View {
         VStack(spacing: 16) {
@@ -30,6 +33,9 @@ struct DashboardLoginView: View {
                     .textFieldStyle(.roundedBorder)
                     .multilineTextAlignment(.center)
                     .frame(width: 220)
+                    .onChange(of: gameSyncId) {
+                        gameSyncId = GSIDUtility.sanitizeInput(gameSyncId)
+                    }
                     .onSubmit(logIn)
 
                 Button("Log In", action: logIn)
@@ -38,6 +44,23 @@ struct DashboardLoginView: View {
             }
 
             Spacer()
+
+            VStack(spacing: 6) {
+                HStack(spacing: 6) {
+                    Image(systemName: "wifi")
+                    Text("Set your DS primary DNS to:")
+                    Text(localIP)
+                        .fontWeight(.semibold)
+                        .textSelection(.enabled)
+                }
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+
+                Button("Trouble connecting? Fix Error 60000") { showingPidTool = true }
+                    .buttonStyle(.borderless)
+                    .font(.footnote)
+            }
+            .padding(.bottom, 20)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(nsColor: .textBackgroundColor))
@@ -49,10 +72,13 @@ struct DashboardLoginView: View {
         } message: {
             Text(errorMessage ?? "")
         }
+        .sheet(isPresented: $showingPidTool) {
+            PidToolView(userManager: AppServices.shared.userManager)
+        }
     }
 
     private func logIn() {
-        let gsid = gameSyncId.trimmingCharacters(in: .whitespaces).uppercased()
+        let gsid = gameSyncId
         guard GSIDUtility.isValid(gsid) else {
             errorMessage = "Please enter a valid Game Sync ID."
             return
